@@ -19,12 +19,14 @@
      projeto → Seus apps → app da Web).
   --------------------------------------------------------- */
   var firebaseConfig = {
-    apiKey:            "COLE_AQUI_SUA_API_KEY",
-    authDomain:         "COLE_AQUI.firebaseapp.com",
-    projectId:          "COLE_AQUI_PROJECT_ID",
-    storageBucket:      "COLE_AQUI.appspot.com",
-    messagingSenderId:  "COLE_AQUI_SENDER_ID",
-    appId:              "COLE_AQUI_APP_ID"
+    apiKey: "AIzaSyAa5yO2HSOGyUOCqKXKUEEsqGPKHOv78Es",
+  authDomain: "babalindo-feb02.firebaseapp.com",
+  projectId: "babalindo-feb02",
+  storageBucket: "babalindo-feb02.firebasestorage.app",
+  messagingSenderId: "620496011247",
+  appId: "1:620496011247:web:6095a42681b7b56fbb801a",
+  measurementId: "G-VM4XKBE0KF"
+
   };
 
   firebase.initializeApp(firebaseConfig);
