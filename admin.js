@@ -33,6 +33,10 @@
   var auth = firebase.auth();
   var db   = firebase.firestore();
 
+  // Sessão isolada por aba: evita que o site do usuário (mesmo domínio
+  // no GitHub Pages) derrube o login deste site do admin, e vice-versa.
+  auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
   var STATUS = {
     PENDENTE:   "pendente",
     ACEITO:     "aceito",
