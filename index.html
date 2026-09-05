@@ -8,7 +8,29 @@
 </head>
 <body>
 
-<div class="app-shell">
+<!-- ===================== TELA DE LOGIN ===================== -->
+<div class="auth-shell" id="auth-shell">
+  <div class="auth-card">
+    <div class="auth-brand">Baba Lindao <span>Deus</span></div>
+    <p class="auth-sub">Acesso administrativo</p>
+
+    <div class="auth-error" id="auth-error"></div>
+
+    <form id="login-form">
+      <div class="field-row">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" autocomplete="username" required>
+      </div>
+      <div class="field-row">
+        <label for="login-password">Senha</label>
+        <input type="password" id="login-password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="login-btn">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<div class="app-shell hidden" id="app-shell">
 
   <!-- ===================== SIDEBAR ===================== -->
   <aside class="sidebar">
