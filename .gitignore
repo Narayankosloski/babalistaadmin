@@ -1,0 +1,34 @@
+# ---------- Node ----------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---------- Capacitor ----------
+ios/
+# (remova a linha acima se você também for gerar app para iOS)
+
+# ---------- Android / Gradle ----------
+android/.gradle/
+android/build/
+android/app/build/
+android/captures/
+android/local.properties
+android/.idea/
+android/*.iml
+android/app/*.iml
+android/app/release/
+android/app/debug/
+
+# Keystore (NUNCA suba sua chave de assinatura pro GitHub)
+*.keystore
+*.jks
+
+# ---------- Android Studio ----------
+.idea/
+*.iml
+.DS_Store
+
+# ---------- Build outputs ----------
+*.apk
+*.aab

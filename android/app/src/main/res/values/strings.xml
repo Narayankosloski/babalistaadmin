@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Baba Lindao Deus Admin</string>
+    <string name="title_activity_main">Baba Lindao Deus Admin</string>
+    <string name="package_name">com.babalindaodeus.admin</string>
+    <string name="custom_url_scheme">com.babalindaodeus.admin</string>
+</resources>
