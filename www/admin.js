@@ -51,6 +51,13 @@
     finalizado: "Finalizado"
   };
 
+  var COMPRA_STATUS_LABEL = {
+    pendente:  "Pendente",
+    aprovado:  "Aprovado",
+    rejeitado: "Rejeitado",
+    comprado:  "Comprado"
+  };
+
   /* ============================================================
      ESTADO
   ============================================================ */
@@ -58,6 +65,7 @@
   var modelsCache = [];
   var blocksCache = [];
   var usersCache  = [];
+  var comprasCache = [];
 
   var editingItemId  = null;
   var editingModelId = null;   // null = novo modelo
@@ -275,6 +283,14 @@
       renderBlocos();
       renderHistorico();
       renderDashboard();
+    });
+
+    db.collection("compras").orderBy("createdAt", "desc").onSnapshot(function (snap) {
+      var compras = [];
+      snap.forEach(function (d) { compras.push(Object.assign({ id: d.id }, d.data())); });
+      comprasCache = compras;
+
+      renderCompras();
     });
 
     db.collection("users").where("role", "==", "user").get().then(function (snap) {
@@ -583,7 +599,7 @@
     document.getElementById("detalhe-bloco-destino").textContent = "Enviado para " + (b.assignedToName || "—") + " em " + fmtDate(b.createdAt);
     document.getElementById("detalhe-bloco-descricao").textContent = b.description || "";
     document.getElementById("detalhe-bloco-itens").innerHTML = b.items.map(function (i) {
-      return '<div class="item-line"><span class="item-name">' + i.itemName + '</span><span class="small muted">' + i.quantity + ' un.</span></div>';
+      return '<div class="item-line"><span class="item-name">' + i.itemName + '</span><span class="small muted">' + i.quantity + ' un.' + (i.falta ? ' · <span class="danger">falta</span>' : '') + '</span></div>';
     }).join("");
     document.getElementById("detalhe-bloco-status").outerHTML =
       statusBadge(b.status).replace('<span class="badge', '<span id="detalhe-bloco-status" class="badge');
@@ -593,5 +609,50 @@
   document.getElementById("btn-fechar-detalhe").addEventListener("click", function () {
     document.getElementById("modal-bloco").classList.remove("active");
   });
+
+  /* ============================================================
+     COMPRAS — itens marcados como "falta" pelos usuários
+  ============================================================ */
+  function renderCompras() {
+    var container = document.getElementById("lista-compras");
+    var pendentes = comprasCache.filter(function (c) { return c.status === "pendente"; });
+
+    container.innerHTML = pendentes.length ? pendentes.map(function (c) {
+      return '' +
+        '<div class="list-row" data-id="' + c.id + '">' +
+        '<div class="row-main">' +
+        '<div class="row-title">' + c.itemName + '</div>' +
+        '<div class="row-sub">' + c.quantity + ' un. · ' + (c.blockName || "Item avulso") + ' · Pedido por ' + (c.requestedByName || "—") + '</div>' +
+        '</div>' +
+        '<div class="row-side flex gap-2">' +
+        '<button class="btn btn-secondary small btn-aprovar" data-id="' + c.id + '">Vai comprar</button>' +
+        '<button class="btn btn-danger small btn-rejeitar" data-id="' + c.id + '">Não vai comprar</button>' +
+        '</div>' +
+        '</div>';
+    }).join("") : '<div class="empty-state"><h3>Nenhum pedido de compra pendente</h3></div>';
+
+    container.querySelectorAll(".btn-aprovar").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        db.collection("compras").doc(btn.dataset.id).update({
+          status: "aprovado",
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function () {
+          toast("Item marcado para compra.");
+        });
+      });
+    });
+    container.querySelectorAll(".btn-rejeitar").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        db.collection("compras").doc(btn.dataset.id).update({
+          status: "rejeitado",
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function () {
+          toast("Item marcado como não comprado.");
+        });
+      });
+    });
+  }
 
 })();
