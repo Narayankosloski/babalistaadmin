@@ -245,9 +245,25 @@
       <div class="page-head">
         <div>
           <h1>Despensa</h1>
-          <p class="subtitle">Itens que os usuários marcaram como faltando.</p>
+          <p class="subtitle">Itens que os usuários marcaram como faltando, e itens que você quiser colocar direto na lista de compras.</p>
         </div>
       </div>
+
+      <div class="panel mb-3">
+        <h3 class="mb-2">Adicionar item direto</h3>
+        <div class="field-grid">
+          <div class="field-row">
+            <label for="compra-admin-nome">Nome do item</label>
+            <input type="text" id="compra-admin-nome" placeholder="Ex: Dendê">
+          </div>
+          <div class="field-row">
+            <label for="compra-admin-qtd">Quantidade</label>
+            <input type="number" id="compra-admin-qtd" min="1" value="1">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-add-compra-admin">Adicionar à despensa</button>
+      </div>
+
       <div class="list" id="lista-compras"></div>
     </section>
 

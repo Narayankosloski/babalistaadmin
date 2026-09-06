@@ -33,9 +33,14 @@
   var auth = firebase.auth();
   var db   = firebase.firestore();
 
-  // Sessão isolada por aba: evita que o site do usuário (mesmo domínio
-  // no GitHub Pages) derrube o login deste site do admin, e vice-versa.
-  auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+  // No navegador (GitHub Pages), os dois sites (admin e usuário) ficam no
+  // mesmo domínio e compartilham o localStorage — por isso usamos SESSION
+  // aqui, pra logar em um não derrubar o outro. Já dentro do app instalado
+  // (Capacitor), cada site roda isolado no seu próprio app, então não tem
+  // esse conflito — nesse caso usamos LOCAL pra manter a pessoa logada
+  // entre uma abertura e outra do app, sem precisar digitar a senha toda vez.
+  var isAppNativo = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  auth.setPersistence(isAppNativo ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
 
   var STATUS = {
     PENDENTE:   "pendente",
@@ -228,7 +233,7 @@
     container.innerHTML = itemsArray.map(function (it, idx) {
       return '' +
         '<div class="item-line">' +
-        '<span class="item-name">' + it.itemName + '</span>' +
+        '<span class="item-name">' + it.itemName + (it.modelName ? ' <span class="small muted">— ' + it.modelName + '</span>' : '') + '</span>' +
         '<input type="number" min="1" class="qty-input" data-idx="' + idx + '" value="' + it.quantity + '">' +
         '<span class="small muted">un.</span>' +
         '<span class="remove" data-idx="' + idx + '" style="cursor:pointer;">Remover</span>' +
@@ -260,22 +265,27 @@
     if (!itemId) return;
     var item = itemsCache.find(function (i) { return i.id === itemId; });
     if (!item) return;
-    var existing = itemsArray.find(function (i) { return i.itemId === itemId; });
+    var existing = itemsArray.find(function (i) { return i.itemId === itemId && !i.modelId; });
     if (existing) { existing.quantity += 1; return; }
     itemsArray.push({
       itemId: item.id,
       itemName: item.name,
       quantity: 1,
-      description: item.description || ""
+      description: item.description || "",
+      modelId: null,
+      modelName: null
     });
   }
 
   /**
-   * Soma os itens de uma comida (modelo) dentro de uma lista em construção.
-   * Se um item da comida já existir na lista, a quantidade é somada;
-   * caso contrário o item é adicionado. É uma cópia independente —
-   * depois de somado, editar aqui nunca altera a comida original, e
-   * alterar a comida depois não muda listas já criadas.
+   * Soma os itens de uma comida (modelo) dentro de uma lista em construção,
+   * marcando cada item com a comida de origem (modelId/modelName) para
+   * depois ser possível mostrar "o que vai em cada comida" na lista.
+   * Se a mesma comida for adicionada de novo, as quantidades dela se somam;
+   * itens de comidas diferentes ficam em linhas separadas mesmo que sejam
+   * o mesmo item cadastrado. É uma cópia independente — depois de somado,
+   * editar aqui nunca altera a comida original, e alterar a comida depois
+   * não muda listas já criadas.
    */
   function addModeloToBuilder(itemsArray, modelId) {
     if (!modelId) return;
@@ -283,11 +293,11 @@
     if (!model) return;
 
     model.items.forEach(function (it) {
-      var existing = itemsArray.find(function (x) { return x.itemId === it.itemId; });
+      var existing = itemsArray.find(function (x) { return x.itemId === it.itemId && x.modelId === modelId; });
       if (existing) {
         existing.quantity += it.quantity;
       } else {
-        itemsArray.push(Object.assign({}, it));
+        itemsArray.push(Object.assign({}, it, { modelId: modelId, modelName: model.name }));
       }
     });
 
@@ -297,6 +307,23 @@
     if (!document.getElementById("bloco-nome").value) {
       document.getElementById("bloco-nome").value = model.name;
     }
+  }
+
+  /** Agrupa uma lista de itens (com modelId/modelName) por comida de origem,
+      mantendo o índice original de cada item em b.items (necessário para
+      ações como marcar "falta"). Itens sem modelId caem em "Itens avulsos". */
+  function groupItemsByModel(items) {
+    var groups = {};
+    var order = [];
+    items.forEach(function (it, idx) {
+      var key = it.modelId || "_avulso";
+      if (!groups[key]) {
+        groups[key] = { name: it.modelName || "Itens avulsos", items: [] };
+        order.push(key);
+      }
+      groups[key].items.push(Object.assign({ idx: idx }, it));
+    });
+    return order.map(function (k) { return groups[k]; });
   }
 
   /* ============================================================
@@ -642,12 +669,61 @@
     document.getElementById("detalhe-bloco-nome").textContent = b.name;
     document.getElementById("detalhe-bloco-destino").textContent = "Enviado para " + (b.assignedToName || "—") + " em " + fmtDate(b.createdAt);
     document.getElementById("detalhe-bloco-descricao").textContent = b.description || "";
-    document.getElementById("detalhe-bloco-itens").innerHTML = b.items.map(function (i) {
-      return '<div class="item-line"><span class="item-name">' + i.itemName + '</span><span class="small muted">' + i.quantity + ' un.' + (i.falta ? ' · <span class="danger">falta</span>' : '') + '</span></div>';
+
+    var grupos = groupItemsByModel(b.items);
+    document.getElementById("detalhe-bloco-itens").innerHTML = grupos.map(function (g) {
+      return '<div class="group-title">' + g.name + '</div>' +
+        g.items.map(function (i) {
+          return '<div class="item-line">' +
+            '<span class="item-name">' + i.itemName + '</span>' +
+            '<span class="small muted">' + i.quantity + ' un.</span>' +
+            '<label class="small muted" style="display:flex;align-items:center;gap:6px;margin-left:10px;white-space:nowrap;">' +
+            '<input type="checkbox" class="falta-check" data-idx="' + i.idx + '"' + (i.falta ? " checked" : "") + '> Falta' +
+            '</label>' +
+            '</div>';
+        }).join("");
     }).join("");
+
+    document.getElementById("detalhe-bloco-itens").querySelectorAll(".falta-check").forEach(function (chk) {
+      chk.addEventListener("change", function () {
+        adminToggleFalta(b, Number(chk.dataset.idx), chk.checked);
+      });
+    });
+
     document.getElementById("detalhe-bloco-status").outerHTML =
       statusBadge(b.status).replace('<span class="badge', '<span id="detalhe-bloco-status" class="badge');
     document.getElementById("modal-bloco").classList.add("active");
+  }
+
+  /** Admin marcando/desmarcando "falta" direto na lista — mesma mecânica
+      do usuário: cria/remove o pedido correspondente em "compras". */
+  function adminToggleFalta(block, idx, falta) {
+    var item = block.items[idx];
+    item.falta = falta;
+
+    if (falta) {
+      db.collection("compras").add({
+        itemName: item.itemName,
+        quantity: item.quantity,
+        blockId: block.id,
+        blockName: block.name,
+        assignedTo: block.assignedTo,
+        requestedBy: null,
+        requestedByName: document.getElementById("user-name").textContent + " (admin)",
+        status: "pendente",
+        adminNote: "",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function (ref) {
+        item.compraId = ref.id;
+        db.collection("blocks").doc(block.id).update({ items: block.items });
+      });
+    } else if (item.compraId) {
+      db.collection("compras").doc(item.compraId).delete();
+      delete item.compraId;
+      db.collection("blocks").doc(block.id).update({ items: block.items });
+    } else {
+      db.collection("blocks").doc(block.id).update({ items: block.items });
+    }
   }
 
   document.getElementById("btn-fechar-detalhe").addEventListener("click", function () {
@@ -659,21 +735,27 @@
   ============================================================ */
   function renderCompras() {
     var container = document.getElementById("lista-compras");
-    var pendentes = comprasCache.filter(function (c) { return c.status === "pendente"; });
+    var abertos = comprasCache.filter(function (c) { return c.status === "pendente" || c.status === "aprovado"; });
 
-    container.innerHTML = pendentes.length ? pendentes.map(function (c) {
+    container.innerHTML = abertos.length ? abertos.map(function (c) {
+      var acoes = c.status === "pendente"
+        ? '<button class="btn btn-secondary small btn-aprovar" data-id="' + c.id + '">Vai comprar</button>' +
+          '<button class="btn btn-danger small btn-rejeitar" data-id="' + c.id + '">Não vai comprar</button>'
+        : '<button class="btn btn-secondary small btn-comprado" data-id="' + c.id + '">Marcar como comprado</button>';
+
       return '' +
-        '<div class="list-row" data-id="' + c.id + '">' +
+        '<div class="list-row" data-id="' + c.id + '" style="cursor:default;">' +
         '<div class="row-main">' +
         '<div class="row-title">' + c.itemName + '</div>' +
         '<div class="row-sub">' + c.quantity + ' un. · ' + (c.blockName || "Item avulso") + ' · Pedido por ' + (c.requestedByName || "—") + '</div>' +
+        (c.adminNote ? '<div class="row-sub">💡 ' + c.adminNote + '</div>' : '') +
         '</div>' +
         '<div class="row-side flex gap-2">' +
-        '<button class="btn btn-secondary small btn-aprovar" data-id="' + c.id + '">Vai comprar</button>' +
-        '<button class="btn btn-danger small btn-rejeitar" data-id="' + c.id + '">Não vai comprar</button>' +
+        '<button class="btn btn-ghost small btn-sugestao" data-id="' + c.id + '">' + (c.adminNote ? "Editar sugestão" : "Sugestão") + '</button>' +
+        acoes +
         '</div>' +
         '</div>';
-    }).join("") : '<div class="empty-state"><h3>Nenhum pedido de compra pendente</h3></div>';
+    }).join("") : '<div class="empty-state"><h3>Nada pendente na despensa</h3></div>';
 
     container.querySelectorAll(".btn-aprovar").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
@@ -697,6 +779,56 @@
         });
       });
     });
+    container.querySelectorAll(".btn-comprado").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        db.collection("compras").doc(btn.dataset.id).update({
+          status: "comprado",
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function () {
+          toast("Item marcado como comprado.");
+        });
+      });
+    });
+    container.querySelectorAll(".btn-sugestao").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var atual = comprasCache.find(function (c) { return c.id === btn.dataset.id; });
+        var nota = prompt("Sugestão para quem vai comprar (ex.: onde encontrar, marca, etc.):", (atual && atual.adminNote) || "");
+        if (nota === null) return;
+        db.collection("compras").doc(btn.dataset.id).update({
+          adminNote: nota.trim(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function () {
+          toast("Sugestão salva.");
+        });
+      });
+    });
   }
+
+  /** Admin adicionando um item direto em "precisa comprar", sem esperar
+      pedido de um usuário — mesma mecânica usada pelo usuário, mas já
+      entra como "aprovado" porque quem decidiu foi o próprio admin. */
+  document.getElementById("btn-add-compra-admin").addEventListener("click", function () {
+    var nome = document.getElementById("compra-admin-nome").value.trim();
+    var qtd = Math.max(1, parseInt(document.getElementById("compra-admin-qtd").value, 10) || 1);
+    if (!nome) { toast("Digite o nome do item."); return; }
+
+    db.collection("compras").add({
+      itemName: nome,
+      quantity: qtd,
+      blockId: null,
+      blockName: null,
+      requestedBy: null,
+      requestedByName: document.getElementById("user-name").textContent + " (admin)",
+      status: "aprovado",
+      adminNote: "",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      document.getElementById("compra-admin-nome").value = "";
+      document.getElementById("compra-admin-qtd").value = "1";
+      toast("Item adicionado à despensa.");
+    });
+  });
 
 })();

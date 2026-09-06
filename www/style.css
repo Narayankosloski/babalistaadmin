@@ -412,6 +412,18 @@ html[data-theme="dark"] .theme-btn .icon-sun{ display:block; }
 .item-line .qty-input{ width:76px; text-align:center; }
 .item-line .remove{ color:var(--danger); font-size:13px; }
 
+/* título de grupo (nome da comida) dentro do detalhe da lista */
+.group-title{
+  font-family:var(--font-display);
+  font-size:12px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  color:var(--ink-muted);
+  margin:16px 0 4px;
+}
+.group-title:first-child{ margin-top:0; }
+
 /* ---------- modal ---------- */
 .modal-backdrop{
   position:fixed; inset:0;
