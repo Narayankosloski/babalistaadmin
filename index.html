@@ -114,7 +114,7 @@
       <div class="page-head">
         <div>
           <h1>Itens</h1>
-          <p class="subtitle">Cadastro de itens usados em comidas e blocos. A quantidade é sempre em unidades.</p>
+          <p class="subtitle">Cadastro de itens usados em comidas e listas. A quantidade é sempre em unidades.</p>
         </div>
         <button class="btn btn-primary" id="btn-novo-item">Novo item</button>
       </div>
@@ -126,7 +126,7 @@
       <div class="page-head">
         <div>
           <h1>Comidas</h1>
-          <p class="subtitle">Conjuntos reutilizáveis de itens para agilizar a criação de blocos.</p>
+          <p class="subtitle">Conjuntos reutilizáveis de itens para agilizar a criação das listas.</p>
         </div>
         <button class="btn btn-primary" id="btn-novo-modelo">Nova comida</button>
       </div>
@@ -174,15 +174,15 @@
     <section class="view" id="view-novo-bloco">
       <div class="page-head">
         <div>
-          <h1>Novo Bloco</h1>
-          <p class="subtitle">Comece vazio ou a partir de um modelo — o bloco criado é independente do modelo.</p>
+          <h1>Nova lista</h1>
+          <p class="subtitle">Comece vazio ou a partir de uma pre definição — a lista criada é independente do modelo.</p>
         </div>
       </div>
 
       <div class="two-col">
         <div class="panel">
           <div class="field-row">
-            <label for="bloco-nome">Nome do bloco</label>
+            <label for="bloco-nome">Nome da lista</label>
             <input type="text" id="bloco-nome" placeholder="Ex.: Produção A">
           </div>
           <div class="field-row">
@@ -197,7 +197,7 @@
 
         <div class="panel">
           <div class="field-row">
-            <label for="bloco-usar-modelo">Usar um modelo como base (opcional)</label>
+            <label for="bloco-usar-modelo">Usar uma comida como base (opcional)</label>
             <select id="bloco-usar-modelo">
               <option value="">— Começar vazio —</option>
             </select>
@@ -212,7 +212,7 @@
       </div>
 
       <div class="flex" style="justify-content:flex-end;margin-top:20px;">
-        <button class="btn btn-primary" id="btn-enviar-bloco">Criar e enviar bloco</button>
+        <button class="btn btn-primary" id="btn-enviar-bloco">Criar e enviar lista</button>
       </div>
     </section>
 
@@ -220,8 +220,8 @@
     <section class="view" id="view-blocos">
       <div class="page-head">
         <div>
-          <h1>Blocos</h1>
-          <p class="subtitle">Acompanhe o status dos blocos enviados.</p>
+          <h1>Listas</h1>
+          <p class="subtitle">Acompanhe o status dos listas enviadas.</p>
         </div>
       </div>
       <div class="list" id="lista-blocos"></div>
@@ -232,7 +232,7 @@
       <div class="page-head">
         <div>
           <h1>Histórico</h1>
-          <p class="subtitle">Blocos finalizados.</p>
+          <p class="subtitle">Listas finalizadas.</p>
         </div>
       </div>
       <div class="list" id="lista-historico"></div>
@@ -276,7 +276,7 @@
 <!-- ===================== MODAL: DETALHE DO BLOCO ===================== -->
 <div class="modal-backdrop" id="modal-bloco">
   <div class="modal">
-    <h2 id="detalhe-bloco-nome" class="mb-1">Bloco</h2>
+    <h2 id="detalhe-bloco-nome" class="mb-1">Lista</h2>
     <p class="muted small mb-2" id="detalhe-bloco-destino"></p>
     <p class="small mb-3" id="detalhe-bloco-descricao"></p>
     <div id="detalhe-bloco-itens" class="mb-3"></div>

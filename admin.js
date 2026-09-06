@@ -344,7 +344,7 @@
         '</div>' +
         '<div class="row-side">' + statusBadge(b.status) + '</div>' +
         '</div>';
-    }).join("") : '<div class="empty-state"><h3>Nenhum bloco ainda</h3><p>Crie o primeiro bloco na aba "Novo Bloco".</p></div>';
+    }).join("") : '<div class="empty-state"><h3>Nenhuma lista ainda</h3><p>Crie a primeira lista na aba "Nova Lista".</p></div>';
   }
 
   /* ============================================================
@@ -361,7 +361,7 @@
         '</div>' +
         '<div class="row-side">UNIDADE</div>' +
         '</div>';
-    }).join("") : '<div class="empty-state"><h3>Nenhum item cadastrado</h3><p>Cadastre o primeiro item para usar em modelos e blocos.</p></div>';
+    }).join("") : '<div class="empty-state"><h3>Nenhum item cadastrado</h3><p>Cadastre o primeiro item para usar na comidas e listas.</p></div>';
 
     container.querySelectorAll(".list-row").forEach(function (row) {
       row.addEventListener("click", function () { openItemModal(row.dataset.id); });
@@ -407,7 +407,7 @@
 
   document.getElementById("btn-desativar-item").addEventListener("click", function () {
     if (!editingItemId) return;
-    if (!confirm("Desativar este item? Ele deixará de aparecer em novos modelos e blocos.")) return;
+    if (!confirm("Desativar este item? Ele deixará de aparecer em novas comidas e listas.")) return;
     db.collection("items").doc(editingItemId).update({ active: false }).then(function () {
       toast("Item desativado.");
       document.getElementById("modal-item").classList.remove("active");
@@ -418,7 +418,7 @@
      MODELOS
   ============================================================ */
   function renderModelos() {
-    var container = document.getElementById("lista-modelos");
+    var container = document.getElementById("lista-comidas");
     container.innerHTML = modelsCache.length ? modelsCache.map(function (m) {
       return '' +
         '<div class="list-row" data-id="' + m.id + '">' +
@@ -468,7 +468,7 @@
   }
 
   document.getElementById("btn-novo-modelo").addEventListener("click", function () { openModelEditor(null); });
-  document.getElementById("btn-cancelar-modelo").addEventListener("click", function () { switchView("modelos"); });
+  document.getElementById("btn-cancelar-modelo").addEventListener("click", function () { switchView("comidas"); });
 
   document.getElementById("btn-add-item-modelo").addEventListener("click", function () {
     var sel = document.getElementById("modelo-select-item");
@@ -499,7 +499,7 @@
 
     promise.then(function () {
       toast(editingModelId ? "Modelo atualizado." : "Modelo criado.");
-      switchView("modelos");
+      switchView("comidas");
     }).catch(function () {
       toast("Erro ao salvar modelo.");
     });
@@ -507,10 +507,10 @@
 
   document.getElementById("btn-excluir-modelo").addEventListener("click", function () {
     if (!editingModelId) return;
-    if (!confirm("Excluir este modelo? Blocos já criados a partir dele não serão afetados.")) return;
+    if (!confirm("Excluir esta comida? listas já criadas a partir dela não serão afetadas.")) return;
     db.collection("models").doc(editingModelId).delete().then(function () {
       toast("Modelo excluído.");
-      switchView("modelos");
+      switchView("comidas");
     });
   });
 
@@ -549,7 +549,7 @@
     var assignedToName = destSel.selectedOptions[0] ? destSel.selectedOptions[0].textContent : "";
     var modelId = document.getElementById("bloco-usar-modelo").value || null;
 
-    if (!name) { toast("Dê um nome ao bloco."); return; }
+    if (!name) { toast("Dê um nome a lista."); return; }
     if (!assignedTo) { toast("Selecione para quem enviar."); return; }
     if (blockBuilderItems.length === 0) { toast("Adicione pelo menos um item."); return; }
 
@@ -564,16 +564,16 @@
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function () {
-      toast("Bloco criado e enviado.");
+      toast("Lista criada e enviada.");
       document.getElementById("bloco-nome").value = "";
       document.getElementById("bloco-descricao").value = "";
       document.getElementById("bloco-usar-modelo").value = "";
       destSel.value = "";
       blockBuilderItems = [];
       renderBlocoBuilder();
-      switchView("blocos");
+      switchView("listas");
     }).catch(function () {
-      toast("Erro ao enviar bloco.");
+      toast("Erro ao enviar lista.");
     });
   });
 
@@ -595,7 +595,7 @@
     var ativos = blocksCache.filter(function (b) { return b.status !== STATUS.FINALIZADO; });
     var container = document.getElementById("lista-blocos");
     container.innerHTML = ativos.length ? ativos.map(renderBlockRow).join("")
-      : '<div class="empty-state"><h3>Nenhum bloco em andamento</h3><p>Os blocos enviados aparecerão aqui até serem finalizados.</p></div>';
+      : '<div class="empty-state"><h3>Nenhuma lista em andamento</h3><p>As listas enviadas aparecerão aqui até serem finalizadas.</p></div>';
     container.querySelectorAll(".list-row").forEach(function (row) {
       row.addEventListener("click", function () { openBlockDetail(row.dataset.id); });
     });
@@ -605,7 +605,7 @@
     var finalizados = blocksCache.filter(function (b) { return b.status === STATUS.FINALIZADO; });
     var container = document.getElementById("lista-historico");
     container.innerHTML = finalizados.length ? finalizados.map(renderBlockRow).join("")
-      : '<div class="empty-state"><h3>Nenhum bloco finalizado ainda</h3></div>';
+      : '<div class="empty-state"><h3>Nenhuma lista finalizada ainda</h3></div>';
     container.querySelectorAll(".list-row").forEach(function (row) {
       row.addEventListener("click", function () { openBlockDetail(row.dataset.id); });
     });
