@@ -160,8 +160,27 @@
   });
 
   /* ============================================================
-     NAVEGAÇÃO ENTRE VIEWS
+     NAVEGAÇÃO ENTRE VIEWS + GAVETA LATERAL
   ============================================================ */
+  var menuBtn     = document.getElementById("menu-btn");
+  var sidebarEl   = document.getElementById("sidebar");
+  var navBackdrop = document.getElementById("nav-backdrop");
+
+  function openNav() {
+    sidebarEl.classList.add("open");
+    navBackdrop.classList.add("open");
+    menuBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeNav() {
+    sidebarEl.classList.remove("open");
+    navBackdrop.classList.remove("open");
+    menuBtn.setAttribute("aria-expanded", "false");
+  }
+  menuBtn.addEventListener("click", function () {
+    if (sidebarEl.classList.contains("open")) { closeNav(); } else { openNav(); }
+  });
+  navBackdrop.addEventListener("click", closeNav);
+
   function switchView(name) {
     document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
     document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
@@ -171,7 +190,7 @@
   }
 
   document.querySelectorAll(".nav-item[data-view]").forEach(function (el) {
-    el.addEventListener("click", function () { switchView(el.dataset.view); });
+    el.addEventListener("click", function () { switchView(el.dataset.view); closeNav(); });
   });
 
   /* ============================================================
