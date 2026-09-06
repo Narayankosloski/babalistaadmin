@@ -66,11 +66,11 @@
     <nav class="nav-group">
       <div class="nav-item active" data-view="dashboard"><span class="dot"></span>Dashboard</div>
       <div class="nav-item" data-view="itens"><span class="dot"></span>Itens</div>
-      <div class="nav-item" data-view="modelos"><span class="dot"></span>Modelos</div>
-      <div class="nav-item" data-view="novo-bloco"><span class="dot"></span>Novo Bloco</div>
-      <div class="nav-item" data-view="blocos"><span class="dot"></span>Blocos</div>
+      <div class="nav-item" data-view="modelos"><span class="dot"></span>comidas</div>
+      <div class="nav-item" data-view="novo-bloco"><span class="dot"></span>Nova Lista</div>
+      <div class="nav-item" data-view="blocos"><span class="dot"></span>Listas</div>
       <div class="nav-item" data-view="historico"><span class="dot"></span>Histórico</div>
-      <div class="nav-item" data-view="compras"><span class="dot"></span>Compras</div>
+      <div class="nav-item" data-view="compras"><span class="dot"></span>despensa</div>
     </nav>
 
     <div class="sidebar-footer">
@@ -99,8 +99,8 @@
 
       <div class="metric-row">
         <div class="metric"><div class="value" id="m-itens">0</div><div class="label">Itens cadastrados</div></div>
-        <div class="metric"><div class="value" id="m-modelos">0</div><div class="label">Modelos</div></div>
-        <div class="metric"><div class="value" id="m-pendentes">0</div><div class="label">Blocos pendentes</div></div>
+        <div class="metric"><div class="value" id="m-modelos">0</div><div class="label">Comidas</div></div>
+        <div class="metric"><div class="value" id="m-pendentes">0</div><div class="label">Comidas pendentes</div></div>
         <div class="metric"><div class="value" id="m-andamento">0</div><div class="label">Em andamento</div></div>
         <div class="metric"><div class="value" id="m-finalizados">0</div><div class="label">Finalizados</div></div>
       </div>
@@ -114,7 +114,7 @@
       <div class="page-head">
         <div>
           <h1>Itens</h1>
-          <p class="subtitle">Cadastro de itens usados em modelos e blocos. A quantidade é sempre em unidades.</p>
+          <p class="subtitle">Cadastro de itens usados em comidas e blocos. A quantidade é sempre em unidades.</p>
         </div>
         <button class="btn btn-primary" id="btn-novo-item">Novo item</button>
       </div>
@@ -125,10 +125,10 @@
     <section class="view" id="view-modelos">
       <div class="page-head">
         <div>
-          <h1>Modelos</h1>
+          <h1>Comidas</h1>
           <p class="subtitle">Conjuntos reutilizáveis de itens para agilizar a criação de blocos.</p>
         </div>
-        <button class="btn btn-primary" id="btn-novo-modelo">Novo modelo</button>
+        <button class="btn btn-primary" id="btn-novo-modelo">Nova comida</button>
       </div>
       <div class="list" id="lista-modelos"></div>
     </section>
@@ -242,7 +242,7 @@
     <section class="view" id="view-compras">
       <div class="page-head">
         <div>
-          <h1>Compras</h1>
+          <h1>Despensa</h1>
           <p class="subtitle">Itens que os usuários marcaram como faltando.</p>
         </div>
       </div>
