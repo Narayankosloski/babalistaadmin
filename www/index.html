@@ -175,7 +175,7 @@
       <div class="page-head">
         <div>
           <h1>Nova lista</h1>
-          <p class="subtitle">Comece vazio ou a partir de uma pre definição — a lista criada é independente do modelo.</p>
+          <p class="subtitle">Comece vazio ou adicione uma ou mais comidas — a lista criada é independente das comidas usadas.</p>
         </div>
       </div>
 
@@ -197,13 +197,15 @@
 
         <div class="panel">
           <div class="field-row">
-            <label for="bloco-usar-modelo">Usar uma comida como base (opcional)</label>
-            <select id="bloco-usar-modelo">
-              <option value="">— Começar vazio —</option>
+            <label for="bloco-select-modelo">Adicionar itens de uma comida</label>
+            <select id="bloco-select-modelo">
+              <option value="">Selecione uma comida</option>
             </select>
           </div>
+          <button class="btn btn-secondary btn-block mb-2" id="btn-add-modelo-bloco">Adicionar comida à lista</button>
+
           <div class="field-row">
-            <label for="bloco-select-item">Adicionar item</label>
+            <label for="bloco-select-item">Adicionar item avulso</label>
             <select id="bloco-select-item"></select>
           </div>
           <button class="btn btn-secondary btn-block mb-2" id="btn-add-item-bloco">Adicionar item</button>

@@ -71,6 +71,7 @@
   var editingModelId = null;   // null = novo modelo
   var modelBuilderItems = [];  // itens sendo editados no editor de modelo
   var blockBuilderItems = [];  // itens sendo montados no Novo Bloco
+  var blockBuilderModelIds = []; // comidas já somadas na lista em construção (apenas registro)
 
   /* ============================================================
      LOGIN / GUARD DE AUTENTICAÇÃO
@@ -269,6 +270,35 @@
     });
   }
 
+  /**
+   * Soma os itens de uma comida (modelo) dentro de uma lista em construção.
+   * Se um item da comida já existir na lista, a quantidade é somada;
+   * caso contrário o item é adicionado. É uma cópia independente —
+   * depois de somado, editar aqui nunca altera a comida original, e
+   * alterar a comida depois não muda listas já criadas.
+   */
+  function addModeloToBuilder(itemsArray, modelId) {
+    if (!modelId) return;
+    var model = modelsCache.find(function (m) { return m.id === modelId; });
+    if (!model) return;
+
+    model.items.forEach(function (it) {
+      var existing = itemsArray.find(function (x) { return x.itemId === it.itemId; });
+      if (existing) {
+        existing.quantity += it.quantity;
+      } else {
+        itemsArray.push(Object.assign({}, it));
+      }
+    });
+
+    if (blockBuilderModelIds.indexOf(modelId) === -1) {
+      blockBuilderModelIds.push(modelId);
+    }
+    if (!document.getElementById("bloco-nome").value) {
+      document.getElementById("bloco-nome").value = model.name;
+    }
+  }
+
   /* ============================================================
      BOOT — assina as coleções em tempo real
   ============================================================ */
@@ -418,7 +448,7 @@
      MODELOS
   ============================================================ */
   function renderModelos() {
-    var container = document.getElementById("lista-comidas");
+    var container = document.getElementById("lista-modelos");
     container.innerHTML = modelsCache.length ? modelsCache.map(function (m) {
       return '' +
         '<div class="list-row" data-id="' + m.id + '">' +
@@ -436,8 +466,8 @@
   }
 
   function fillModeloSelectNoBloco() {
-    var sel = document.getElementById("bloco-usar-modelo");
-    sel.innerHTML = '<option value="">— Começar vazio —</option>' +
+    var sel = document.getElementById("bloco-select-modelo");
+    sel.innerHTML = '<option value="">Selecione uma comida</option>' +
       modelsCache.map(function (m) { return '<option value="' + m.id + '">' + m.name + '</option>'; }).join("");
   }
 
@@ -468,7 +498,7 @@
   }
 
   document.getElementById("btn-novo-modelo").addEventListener("click", function () { openModelEditor(null); });
-  document.getElementById("btn-cancelar-modelo").addEventListener("click", function () { switchView("comidas"); });
+  document.getElementById("btn-cancelar-modelo").addEventListener("click", function () { switchView("modelos"); });
 
   document.getElementById("btn-add-item-modelo").addEventListener("click", function () {
     var sel = document.getElementById("modelo-select-item");
@@ -499,7 +529,7 @@
 
     promise.then(function () {
       toast(editingModelId ? "Modelo atualizado." : "Modelo criado.");
-      switchView("comidas");
+      switchView("modelos");
     }).catch(function () {
       toast("Erro ao salvar modelo.");
     });
@@ -510,7 +540,7 @@
     if (!confirm("Excluir esta comida? listas já criadas a partir dela não serão afetadas.")) return;
     db.collection("models").doc(editingModelId).delete().then(function () {
       toast("Modelo excluído.");
-      switchView("comidas");
+      switchView("modelos");
     });
   });
 
@@ -521,16 +551,11 @@
     renderBuilderItems("bloco-itens-lista", blockBuilderItems, renderBlocoBuilder);
   }
 
-  document.getElementById("bloco-usar-modelo").addEventListener("change", function (e) {
-    var modelId = e.target.value;
-    if (!modelId) { blockBuilderItems = []; renderBlocoBuilder(); return; }
-    var model = modelsCache.find(function (m) { return m.id === modelId; });
-    if (!model) return;
-    // cópia independente — editar aqui nunca altera o modelo original
-    blockBuilderItems = model.items.map(function (i) { return Object.assign({}, i); });
-    if (!document.getElementById("bloco-nome").value) {
-      document.getElementById("bloco-nome").value = model.name;
-    }
+  document.getElementById("btn-add-modelo-bloco").addEventListener("click", function () {
+    var sel = document.getElementById("bloco-select-modelo");
+    if (!sel.value) { toast("Selecione uma comida para adicionar."); return; }
+    addModeloToBuilder(blockBuilderItems, sel.value);
+    sel.value = "";
     renderBlocoBuilder();
   });
 
@@ -547,7 +572,6 @@
     var destSel = document.getElementById("bloco-destinatario");
     var assignedTo = destSel.value;
     var assignedToName = destSel.selectedOptions[0] ? destSel.selectedOptions[0].textContent : "";
-    var modelId = document.getElementById("bloco-usar-modelo").value || null;
 
     if (!name) { toast("Dê um nome a lista."); return; }
     if (!assignedTo) { toast("Selecione para quem enviar."); return; }
@@ -556,7 +580,7 @@
     db.collection("blocks").add({
       name: name,
       description: description,
-      modelId: modelId,
+      modelIds: blockBuilderModelIds, // comidas usadas para montar esta lista (apenas registro)
       assignedTo: assignedTo,
       assignedToName: assignedToName,
       items: blockBuilderItems,
@@ -567,11 +591,12 @@
       toast("Lista criada e enviada.");
       document.getElementById("bloco-nome").value = "";
       document.getElementById("bloco-descricao").value = "";
-      document.getElementById("bloco-usar-modelo").value = "";
+      document.getElementById("bloco-select-modelo").value = "";
       destSel.value = "";
       blockBuilderItems = [];
+      blockBuilderModelIds = [];
       renderBlocoBuilder();
-      switchView("listas");
+      switchView("blocos");
     }).catch(function () {
       toast("Erro ao enviar lista.");
     });
