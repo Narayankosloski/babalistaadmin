@@ -5,11 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Baba Lindao Deus — Admin</title>
 <link rel="stylesheet" href="style.css">
+<script>
+  // Aplica o tema salvo (ou a preferência do sistema) antes da página
+  // renderizar, para evitar "flash" de tema errado.
+  (function () {
+    var saved = localStorage.getItem('theme');
+    var theme = saved || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
 </head>
 <body>
 
 <!-- ===================== TELA DE LOGIN ===================== -->
 <div class="auth-shell" id="auth-shell">
+  <button class="menu-btn theme-btn auth-theme-btn" id="theme-btn-login" aria-label="Alternar tema" title="Alternar tema claro/escuro">
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  </button>
+
   <div class="auth-card">
     <div class="auth-brand">Baba Lindao <span>Deus</span></div>
     <p class="auth-sub">Acesso administrativo</p>
@@ -37,6 +51,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <div class="brand">Baba Lindao <span>Deus</span></div>
+    <button class="theme-btn" id="theme-btn" aria-label="Alternar tema" title="Alternar tema claro/escuro">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
   </header>
 
   <div class="nav-backdrop" id="nav-backdrop"></div>
@@ -274,6 +292,22 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  // Alterna e salva o tema claro/escuro. Funciona nos dois botões
+  // (tela de login e topo do app) e não depende do admin.js.
+  (function () {
+    function toggleTheme() {
+      var html = document.documentElement;
+      var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    }
+    var loginBtn = document.getElementById('theme-btn-login');
+    var appBtn = document.getElementById('theme-btn');
+    if (loginBtn) loginBtn.addEventListener('click', toggleTheme);
+    if (appBtn) appBtn.addEventListener('click', toggleTheme);
+  })();
+</script>
 <script src="admin.js"></script>
 </body>
 </html>

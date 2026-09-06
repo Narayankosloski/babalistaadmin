@@ -5,7 +5,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 :root{
-  /* cor */
+  /* cor — tema claro (padrão) */
   --bg:            #F5F6F8;
   --surface:       #FFFFFF;
   --surface-sunken:#EEF0F3;
@@ -41,6 +41,35 @@
   --shadow-pop: 0 8px 24px rgba(20,23,31,0.12);
 }
 
+/* ---------- tema escuro ---------- */
+html[data-theme="dark"]{
+  --bg:            #101319;
+  --surface:       #171B24;
+  --surface-sunken:#1D222D;
+  --ink:           #EDEFF4;
+  --ink-muted:     #9198AC;
+  --ink-faint:     #666E82;
+  --border:        #262B37;
+  --border-strong: #343B4A;
+
+  --accent:        #5B7FFF;
+  --accent-hover:  #7391FF;
+  --accent-soft:   #1B2540;
+
+  --status-pending:   #E7B255;
+  --status-pending-bg:#332711;
+  --status-accepted:  #6E8CFF;
+  --status-accepted-bg:#182449;
+  --status-progress:  #A587F9;
+  --status-progress-bg:#241A3D;
+  --status-done:      #3FC290;
+  --status-done-bg:   #0F3327;
+  --danger:        #F0666A;
+  --danger-bg:     #3A1519;
+
+  --shadow-pop: 0 8px 24px rgba(0,0,0,0.5);
+}
+
 *{ box-sizing: border-box; }
 
 html,body{
@@ -52,6 +81,11 @@ html,body{
   font-size:15px;
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
+}
+
+body, .topbar, .sidebar, .panel, .list, .metric, .modal, .auth-card,
+.item-line, .list-row, input, textarea, select, .toast, .badge{
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease;
 }
 
 h1,h2,h3,h4{
@@ -129,7 +163,7 @@ label{
 .btn-ghost{ color:var(--ink-muted); padding:8px 10px; }
 .btn-ghost:hover{ color:var(--ink); background:var(--surface-sunken); }
 .btn-danger{ background:var(--danger-bg); color:var(--danger); }
-.btn-danger:hover{ background:#f8d3d4; }
+.btn-danger:hover{ filter:brightness(0.92); }
 .btn-block{ width:100%; justify-content:center; }
 .btn:disabled{ opacity:.5; cursor:not-allowed; }
 
@@ -138,7 +172,7 @@ label{
   min-height:100vh;
 }
 
-/* barra fixa no topo, sempre visível — nome do app + botão de menu */
+/* barra fixa no topo, sempre visível — nome do app + botão de menu + tema */
 .topbar{
   position:sticky;
   top:0;
@@ -151,7 +185,7 @@ label{
   background:var(--surface);
   border-bottom:1px solid var(--border);
 }
-.menu-btn{
+.menu-btn, .theme-btn{
   display:flex;
   align-items:center;
   justify-content:center;
@@ -160,13 +194,19 @@ label{
   flex-shrink:0;
   color:var(--ink);
 }
-.menu-btn:hover{ background:var(--surface-sunken); }
-.menu-btn svg{ width:20px; height:20px; }
+.menu-btn:hover, .theme-btn:hover{ background:var(--surface-sunken); }
+.menu-btn svg, .theme-btn svg{ width:20px; height:20px; }
+
+.theme-btn{ margin-left:auto; }
+.theme-btn .icon-moon{ display:block; }
+.theme-btn .icon-sun{ display:none; }
+html[data-theme="dark"] .theme-btn .icon-moon{ display:none; }
+html[data-theme="dark"] .theme-btn .icon-sun{ display:block; }
 
 /* fundo escurecido atrás da gaveta, some quando fechada */
 .nav-backdrop{
   position:fixed; inset:0;
-  background:rgba(20,23,31,0.45);
+  background:rgba(0,0,0,0.55);
   z-index:49;
   opacity:0;
   pointer-events:none;
@@ -375,7 +415,7 @@ label{
 /* ---------- modal ---------- */
 .modal-backdrop{
   position:fixed; inset:0;
-  background:rgba(20,23,31,0.45);
+  background:rgba(0,0,0,0.55);
   display:none;
   align-items:center;
   justify-content:center;
@@ -410,7 +450,7 @@ label{
   bottom:24px; left:50%;
   transform:translateX(-50%) translateY(20px);
   background:var(--ink);
-  color:#fff;
+  color:var(--bg);
   padding:11px 20px;
   border-radius:var(--radius-sm);
   font-size:13.5px;
@@ -428,6 +468,7 @@ label{
   align-items:center;
   justify-content:center;
   padding:20px;
+  position:relative;
 }
 .auth-card{
   width:100%;
@@ -451,6 +492,12 @@ label{
   margin-bottom:14px; display:none;
 }
 .auth-error.show{ display:block; }
+
+/* botão de tema também disponível na tela de login */
+.auth-theme-btn{
+  position:absolute;
+  top:16px; right:16px;
+}
 
 /* ---------- utilitários ---------- */
 .mb-1{ margin-bottom:8px; } .mb-2{ margin-bottom:16px; } .mb-3{ margin-bottom:24px; }
