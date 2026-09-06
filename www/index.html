@@ -51,6 +51,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <div class="brand">Baba Lindao <span>Deus</span></div>
+    <span class="badge offline hidden" id="offline-badge">Sem conexão</span>
+    <button class="menu-btn" id="reload-btn" aria-label="Recarregar" title="Recarregar app">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
     <button class="theme-btn" id="theme-btn" aria-label="Alternar tema" title="Alternar tema claro/escuro">
       <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -117,6 +121,9 @@
           <p class="subtitle">Cadastro de itens usados em comidas e listas. A quantidade é sempre em unidades.</p>
         </div>
         <button class="btn btn-primary" id="btn-novo-item">Novo item</button>
+      </div>
+      <div class="field-row">
+        <input type="text" id="busca-itens" placeholder="Buscar por nome ou descrição...">
       </div>
       <div class="list" id="lista-itens"></div>
     </section>

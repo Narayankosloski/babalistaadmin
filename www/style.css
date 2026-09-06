@@ -373,6 +373,7 @@ html[data-theme="dark"] .theme-btn .icon-sun{ display:block; }
 .badge.aceito{ background:var(--status-accepted-bg); color:var(--status-accepted); }
 .badge.andamento{ background:var(--status-progress-bg); color:var(--status-progress); }
 .badge.finalizado{ background:var(--status-done-bg); color:var(--status-done); }
+.badge.offline{ background:var(--danger-bg); color:var(--danger); margin-left:8px; }
 
 .list-row.pendente{ border-left-color:var(--status-pending); }
 .list-row.aceito{ border-left-color:var(--status-accepted); }

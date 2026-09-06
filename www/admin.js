@@ -77,6 +77,7 @@
   var modelBuilderItems = [];  // itens sendo editados no editor de modelo
   var blockBuilderItems = [];  // itens sendo montados no Novo Bloco
   var blockBuilderModelIds = []; // comidas já somadas na lista em construção (apenas registro)
+  var itensSearchTerm = "";
 
   /* ============================================================
      LOGIN / GUARD DE AUTENTICAÇÃO
@@ -164,6 +165,26 @@
   document.getElementById("logout-btn").addEventListener("click", function () {
     auth.signOut();
   });
+
+  /* ============================================================
+     RECARREGAR + AVISO DE CONEXÃO
+     Os dados já são atualizados em tempo real via Firestore
+     (onSnapshot) — não é preciso "puxar" pra atualizar. O botão de
+     recarregar serve pra forçar buscar a versão mais nova do app
+     (depois de um update) e resincronizar tudo do zero. O aviso de
+     conexão avisa quando a internet cai, já que nesse caso o que
+     está na tela pode ficar desatualizado até a conexão voltar.
+  ============================================================ */
+  document.getElementById("reload-btn").addEventListener("click", function () {
+    location.reload();
+  });
+
+  function updateOfflineBadge() {
+    document.getElementById("offline-badge").classList.toggle("hidden", navigator.onLine);
+  }
+  window.addEventListener("online", updateOfflineBadge);
+  window.addEventListener("offline", updateOfflineBadge);
+  updateOfflineBadge();
 
   /* ============================================================
      NAVEGAÇÃO ENTRE VIEWS + GAVETA LATERAL
@@ -409,7 +430,15 @@
   ============================================================ */
   function renderItens() {
     var container = document.getElementById("lista-itens");
-    container.innerHTML = itemsCache.length ? itemsCache.map(function (i) {
+    var termo = itensSearchTerm.trim().toLowerCase();
+    var itensFiltrados = termo
+      ? itemsCache.filter(function (i) {
+          return i.name.toLowerCase().indexOf(termo) !== -1 ||
+                 (i.description || "").toLowerCase().indexOf(termo) !== -1;
+        })
+      : itemsCache;
+
+    container.innerHTML = itensFiltrados.length ? itensFiltrados.map(function (i) {
       return '' +
         '<div class="list-row" data-id="' + i.id + '">' +
         '<div class="row-main">' +
@@ -418,12 +447,19 @@
         '</div>' +
         '<div class="row-side">UNIDADE</div>' +
         '</div>';
-    }).join("") : '<div class="empty-state"><h3>Nenhum item cadastrado</h3><p>Cadastre o primeiro item para usar na comidas e listas.</p></div>';
+    }).join("") : (termo
+      ? '<div class="empty-state"><h3>Nenhum item encontrado</h3><p>Tente buscar por outro termo.</p></div>'
+      : '<div class="empty-state"><h3>Nenhum item cadastrado</h3><p>Cadastre o primeiro item para usar na comidas e listas.</p></div>');
 
     container.querySelectorAll(".list-row").forEach(function (row) {
       row.addEventListener("click", function () { openItemModal(row.dataset.id); });
     });
   }
+
+  document.getElementById("busca-itens").addEventListener("input", function (e) {
+    itensSearchTerm = e.target.value;
+    renderItens();
+  });
 
   function openItemModal(id) {
     editingItemId = id || null;
