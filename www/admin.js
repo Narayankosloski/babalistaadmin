@@ -13,20 +13,14 @@
    ============================================================ */
 (function () {
 
-  /* ---------------------------------------------------------
-     CONFIGURAÇÃO DO FIREBASE
-     Preencha com os dados do seu projeto (Configurações do
-     projeto → Seus apps → app da Web).
-  --------------------------------------------------------- */
   var firebaseConfig = {
     apiKey: "AIzaSyAa5yO2HSOGyUOCqKXKUEEsqGPKHOv78Es",
-  authDomain: "babalindo-feb02.firebaseapp.com",
-  projectId: "babalindo-feb02",
-  storageBucket: "babalindo-feb02.firebasestorage.app",
-  messagingSenderId: "620496011247",
-  appId: "1:620496011247:web:6095a42681b7b56fbb801a",
-  measurementId: "G-VM4XKBE0KF"
-
+    authDomain: "babalindo-feb02.firebaseapp.com",
+    projectId: "babalindo-feb02",
+    storageBucket: "babalindo-feb02.firebasestorage.app",
+    messagingSenderId: "620496011247",
+    appId: "1:620496011247:web:6095a42681b7b56fbb801a",
+    measurementId: "G-VM4XKBE0KF"
   };
 
   firebase.initializeApp(firebaseConfig);
@@ -71,6 +65,7 @@
   var blocksCache = [];
   var usersCache  = [];
   var comprasCache = [];
+  var categoriesCache = [];
 
   var editingItemId  = null;
   var editingModelId = null;   // null = novo modelo
@@ -78,6 +73,15 @@
   var blockBuilderItems = [];  // itens sendo montados no Novo Bloco
   var blockBuilderModelIds = []; // comidas já somadas na lista em construção (apenas registro)
   var itensSearchTerm = "";
+  var itensCategoryFilter = ""; // "" = todas as categorias
+
+  /** Nome de exibição de uma categoria a partir do id — resolve sempre pelo
+      cache (não pelo texto salvo no item), então se a categoria for excluída
+      o item passa a aparecer como "Sem categoria" automaticamente. */
+  function categoryLabel(categoryId) {
+    var c = categoriesCache.find(function (x) { return x.id === categoryId; });
+    return c ? c.name : "Sem categoria";
+  }
 
   /* ============================================================
      LOGIN / GUARD DE AUTENTICAÇÃO
@@ -277,9 +281,41 @@
     });
   }
 
+  /** Preenche um <select> de itens agrupado por categoria (<optgroup>),
+      pra facilitar achar o item certo quando a lista crescer. Itens sem
+      categoria caem no grupo "Sem categoria", sempre por último. */
   function fillItemSelect(selectEl, placeholder) {
-    selectEl.innerHTML = '<option value="">' + placeholder + '</option>' +
-      itemsCache.map(function (i) { return '<option value="' + i.id + '">' + i.name + '</option>'; }).join("");
+    var groups = {};
+    var order = [];
+    itemsCache.forEach(function (i) {
+      var key = i.categoryId || "_sem";
+      if (!groups[key]) {
+        groups[key] = { label: i.categoryId ? categoryLabel(i.categoryId) : "Sem categoria", items: [] };
+        order.push(key);
+      }
+      groups[key].items.push(i);
+    });
+    order.sort(function (a, b) {
+      if (a === "_sem") return 1;
+      if (b === "_sem") return -1;
+      return groups[a].label.localeCompare(groups[b].label);
+    });
+
+    var html = '<option value="">' + placeholder + '</option>';
+    order.forEach(function (key) {
+      html += '<optgroup label="' + groups[key].label + '">' +
+        groups[key].items.map(function (i) { return '<option value="' + i.id + '">' + i.name + '</option>'; }).join("") +
+        '</optgroup>';
+    });
+    selectEl.innerHTML = html;
+  }
+
+  /** Preenche o <select> de categoria dentro do modal de item. */
+  function fillItemCategorySelect(selectEl, selectedId) {
+    selectEl.innerHTML = '<option value="">Sem categoria</option>' +
+      categoriesCache.map(function (c) {
+        return '<option value="' + c.id + '"' + (c.id === selectedId ? " selected" : "") + '>' + c.name + '</option>';
+      }).join("");
   }
 
   function addItemToBuilder(itemsArray, itemId) {
@@ -362,6 +398,17 @@
       renderDashboard();
     });
 
+    db.collection("categories").orderBy("name").onSnapshot(function (snap) {
+      var categories = [];
+      snap.forEach(function (d) { categories.push(Object.assign({ id: d.id }, d.data())); });
+      categoriesCache = categories;
+
+      renderCategoriasFiltro();
+      renderItens();
+      fillItemSelect(document.getElementById("modelo-select-item"), "Selecione um item");
+      fillItemSelect(document.getElementById("bloco-select-item"), "Selecione um item");
+    });
+
     db.collection("models").orderBy("name").onSnapshot(function (snap) {
       var models = [];
       snap.forEach(function (d) { models.push(Object.assign({ id: d.id }, d.data())); });
@@ -431,24 +478,25 @@
   function renderItens() {
     var container = document.getElementById("lista-itens");
     var termo = itensSearchTerm.trim().toLowerCase();
-    var itensFiltrados = termo
-      ? itemsCache.filter(function (i) {
-          return i.name.toLowerCase().indexOf(termo) !== -1 ||
-                 (i.description || "").toLowerCase().indexOf(termo) !== -1;
-        })
-      : itemsCache;
+    var itensFiltrados = itemsCache.filter(function (i) {
+      var passaBusca = !termo ||
+        i.name.toLowerCase().indexOf(termo) !== -1 ||
+        (i.description || "").toLowerCase().indexOf(termo) !== -1;
+      var passaCategoria = !itensCategoryFilter || i.categoryId === itensCategoryFilter;
+      return passaBusca && passaCategoria;
+    });
 
     container.innerHTML = itensFiltrados.length ? itensFiltrados.map(function (i) {
       return '' +
         '<div class="list-row" data-id="' + i.id + '">' +
         '<div class="row-main">' +
-        '<div class="row-title">' + i.name + '</div>' +
+        '<div class="row-title">' + i.name + (i.categoryId ? ' <span class="small muted">— ' + categoryLabel(i.categoryId) + '</span>' : '') + '</div>' +
         '<div class="row-sub">' + (i.description || "Sem descrição") + '</div>' +
         '</div>' +
         '<div class="row-side">UNIDADE</div>' +
         '</div>';
-    }).join("") : (termo
-      ? '<div class="empty-state"><h3>Nenhum item encontrado</h3><p>Tente buscar por outro termo.</p></div>'
+    }).join("") : ((termo || itensCategoryFilter)
+      ? '<div class="empty-state"><h3>Nenhum item encontrado</h3><p>Tente buscar por outro termo ou categoria.</p></div>'
       : '<div class="empty-state"><h3>Nenhum item cadastrado</h3><p>Cadastre o primeiro item para usar na comidas e listas.</p></div>');
 
     container.querySelectorAll(".list-row").forEach(function (row) {
@@ -461,12 +509,72 @@
     renderItens();
   });
 
+  /* ============================================================
+     CATEGORIAS — filtro (chips) na tela de Itens + gestão (add/remover)
+  ============================================================ */
+  function renderCategoriasFiltro() {
+    var container = document.getElementById("filtro-categorias");
+    if (!container) return;
+
+    var chips = '<span class="chip' + (itensCategoryFilter ? '' : ' active') + '" data-id="">Todas</span>' +
+      categoriesCache.map(function (c) {
+        return '<span class="chip' + (itensCategoryFilter === c.id ? ' active' : '') + '" data-id="' + c.id + '">' +
+          c.name +
+          '<span class="chip-remove" data-id="' + c.id + '" title="Remover categoria">×</span>' +
+          '</span>';
+      }).join("");
+
+    container.innerHTML = chips || '<span class="small muted">Nenhuma categoria criada ainda.</span>';
+
+    container.querySelectorAll(".chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        itensCategoryFilter = chip.dataset.id || "";
+        renderCategoriasFiltro();
+        renderItens();
+      });
+    });
+    container.querySelectorAll(".chip-remove").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var id = btn.dataset.id;
+        var cat = categoriesCache.find(function (c) { return c.id === id; });
+        if (!cat) return;
+        if (!confirm('Remover a categoria "' + cat.name + '"? Os itens dela ficarão sem categoria.')) return;
+        db.collection("categories").doc(id).delete().then(function () {
+          if (itensCategoryFilter === id) itensCategoryFilter = "";
+          toast("Categoria removida.");
+        }).catch(function () {
+          toast("Erro ao remover categoria.");
+        });
+      });
+    });
+  }
+
+  document.getElementById("btn-add-categoria").addEventListener("click", function () {
+    var input = document.getElementById("nova-categoria-nome");
+    var nome = input.value.trim();
+    if (!nome) { toast("Digite o nome da categoria."); return; }
+    var existe = categoriesCache.some(function (c) { return c.name.toLowerCase() === nome.toLowerCase(); });
+    if (existe) { toast("Essa categoria já existe."); return; }
+
+    db.collection("categories").add({
+      name: nome,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      input.value = "";
+      toast("Categoria criada.");
+    }).catch(function () {
+      toast("Erro ao criar categoria.");
+    });
+  });
+
   function openItemModal(id) {
     editingItemId = id || null;
     var item = id ? itemsCache.find(function (i) { return i.id === id; }) : null;
     document.getElementById("modal-item-titulo").textContent = item ? "Editar item" : "Novo item";
     document.getElementById("item-nome").value = item ? item.name : "";
     document.getElementById("item-descricao").value = item ? item.description || "" : "";
+    fillItemCategorySelect(document.getElementById("item-categoria"), item ? item.categoryId || "" : "");
     document.getElementById("btn-desativar-item").classList.toggle("hidden", !item);
     document.getElementById("modal-item").classList.add("active");
   }
@@ -479,9 +587,11 @@
   document.getElementById("btn-salvar-item").addEventListener("click", function () {
     var name = document.getElementById("item-nome").value.trim();
     var description = document.getElementById("item-descricao").value.trim();
+    var categoryId = document.getElementById("item-categoria").value || null;
+    var categoryName = categoryId ? categoryLabel(categoryId) : null;
     if (!name) { toast("O nome do item é obrigatório."); return; }
 
-    var payload = { name: name, description: description };
+    var payload = { name: name, description: description, categoryId: categoryId, categoryName: categoryName };
     var promise = editingItemId
       ? db.collection("items").doc(editingItemId).update(payload)
       : db.collection("items").add(Object.assign({}, payload, {

@@ -125,6 +125,16 @@
       <div class="field-row">
         <input type="text" id="busca-itens" placeholder="Buscar por nome ou descrição...">
       </div>
+
+      <div class="panel mb-3">
+        <h3 class="mb-2">Categorias</h3>
+        <div class="chip-row" id="filtro-categorias"></div>
+        <div class="chip-add">
+          <input type="text" id="nova-categoria-nome" placeholder="Nova categoria (ex.: Temperos)">
+          <button class="btn btn-secondary" id="btn-add-categoria">Adicionar</button>
+        </div>
+      </div>
+
       <div class="list" id="lista-itens"></div>
     </section>
 
@@ -288,6 +298,10 @@
     <div class="field-row">
       <label for="item-descricao">Descrição (opcional)</label>
       <textarea id="item-descricao" placeholder="Descrição do item"></textarea>
+    </div>
+    <div class="field-row">
+      <label for="item-categoria">Categoria (opcional)</label>
+      <select id="item-categoria"></select>
     </div>
     <div class="field-row muted small">Unidade: UNIDADE</div>
     <div class="modal-actions">

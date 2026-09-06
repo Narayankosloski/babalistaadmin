@@ -413,6 +413,46 @@ html[data-theme="dark"] .theme-btn .icon-sun{ display:block; }
 .item-line .qty-input{ width:76px; text-align:center; }
 .item-line .remove{ color:var(--danger); font-size:13px; }
 
+/* ---------- chips de categoria (filtro em Itens + tags de grupo) ---------- */
+.chip-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:14px;
+}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:6px 12px;
+  border-radius:100px;
+  background:var(--surface-sunken);
+  color:var(--ink-muted);
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  border:1px solid var(--border);
+  white-space:nowrap;
+}
+.chip:hover{ background:var(--border); }
+.chip.active{ background:var(--accent-soft); color:var(--accent); border-color:var(--accent-soft); }
+.chip .chip-remove{
+  color:var(--ink-faint);
+  font-size:14px;
+  line-height:1;
+  padding:0 2px;
+}
+.chip .chip-remove:hover{ color:var(--danger); }
+.chip.active .chip-remove{ color:var(--accent); opacity:.6; }
+.chip.active .chip-remove:hover{ color:var(--danger); opacity:1; }
+
+.chip-add{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.chip-add input{ width:auto; flex:1; min-width:120px; }
+
 /* título de grupo (nome da comida) dentro do detalhe da lista */
 .group-title{
   font-family:var(--font-display);
