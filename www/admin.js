@@ -75,6 +75,7 @@
 
   var editingItemId  = null;
   var editingModelId = null;   // null = novo modelo
+  var addItemFromModelBuilder = false; // true = "+ Cadastrar novo item" foi clicado dentro do editor de comida
   var editingBlockId = null;   // null = nova lista (não editando)
   var modelBuilderItems = [];  // itens sendo editados no editor de modelo
   var blockBuilderItems = [];  // itens sendo montados no Novo Bloco
@@ -632,8 +633,18 @@
     document.getElementById("modal-item").classList.add("active");
   }
 
-  document.getElementById("btn-novo-item").addEventListener("click", function () { openItemModal(null); });
+  document.getElementById("btn-novo-item").addEventListener("click", function () {
+    addItemFromModelBuilder = false;
+    openItemModal(null);
+  });
+
+  document.getElementById("btn-novo-item-modelo").addEventListener("click", function () {
+    addItemFromModelBuilder = true;
+    openItemModal(null);
+  });
+
   document.getElementById("btn-cancelar-item").addEventListener("click", function () {
+    addItemFromModelBuilder = false;
     document.getElementById("modal-item").classList.remove("active");
   });
 
@@ -645,6 +656,7 @@
     if (!name) { toast("O nome do item é obrigatório."); return; }
 
     var payload = { name: name, description: description, categoryId: categoryId, categoryName: categoryName };
+    var veioDoModelo = addItemFromModelBuilder && !editingItemId; // só faz sentido pra item novo
     var promise = editingItemId
       ? db.collection("items").doc(editingItemId).update(payload)
       : db.collection("items").add(Object.assign({}, payload, {
@@ -653,9 +665,16 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }));
 
-    promise.then(function () {
+    promise.then(function (docRef) {
       toast(editingItemId ? "Item atualizado." : "Item cadastrado.");
       document.getElementById("modal-item").classList.remove("active");
+      // Se o item foi criado a partir do editor de comida, adiciona ele
+      // direto na comida sendo montada, sem perder o que já estava lá.
+      if (veioDoModelo && docRef && docRef.id) {
+        addItemToBuilder(modelBuilderItems, docRef.id);
+        renderModeloBuilder();
+      }
+      addItemFromModelBuilder = false;
     }).catch(function () {
       toast("Erro ao salvar item.");
     });
