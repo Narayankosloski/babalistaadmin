@@ -321,6 +321,9 @@
       if (b === "_sem") return -1;
       return groups[a].label.localeCompare(groups[b].label);
     });
+    order.forEach(function (key) {
+      groups[key].items.sort(function (a, b) { return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }); });
+    });
 
     var html = '<option value="">' + placeholder + '</option>';
     order.forEach(function (key) {
@@ -540,12 +543,18 @@
       return passaBusca && passaCategoria;
     });
 
+    itensFiltrados.sort(function (a, b) { return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }); });
+
     container.innerHTML = itensFiltrados.length ? itensFiltrados.map(function (i) {
+      var comidas = modelsCache.filter(function (m) {
+        return m.items.some(function (it) { return it.itemId === i.id; });
+      }).map(function (m) { return m.name; });
       return '' +
         '<div class="list-row" data-id="' + i.id + '">' +
         '<div class="row-main">' +
         '<div class="row-title">' + i.name + (i.categoryId ? ' <span class="small muted">— ' + categoryLabel(i.categoryId) + '</span>' : '') + '</div>' +
         '<div class="row-sub">' + (i.description || "Sem descrição") + '</div>' +
+        (comidas.length ? '<div class="row-sub small muted">Usado em: ' + comidas.join(", ") + '</div>' : '') +
         '</div>' +
         '<div class="row-side">UNIDADE</div>' +
         '</div>';
