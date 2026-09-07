@@ -69,6 +69,7 @@
 
   var editingItemId  = null;
   var editingModelId = null;   // null = novo modelo
+  var editingBlockId = null;   // null = nova lista (não editando)
   var modelBuilderItems = [];  // itens sendo editados no editor de modelo
   var blockBuilderItems = [];  // itens sendo montados no Novo Bloco
   var blockBuilderModelIds = []; // comidas já somadas na lista em construção (apenas registro)
@@ -224,6 +225,10 @@
     el.addEventListener("click", function () { switchView(el.dataset.view); closeNav(); });
   });
 
+  document.querySelectorAll(".metric-link[data-view]").forEach(function (el) {
+    el.addEventListener("click", function () { switchView(el.dataset.view); });
+  });
+
   /* ============================================================
      TOAST
   ============================================================ */
@@ -247,6 +252,10 @@
     if (!ts || !ts.toDate) return "";
     return ts.toDate().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
   }
+
+  var ICON_CHECK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  var ICON_X = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+  var ICON_WARN = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>';
 
   /** Renderiza a lista editável de itens de um modelo/bloco em construção. */
   function renderBuilderItems(containerId, itemsArray, onChange) {
@@ -429,12 +438,24 @@
       renderDashboard();
     });
 
+    var comprasBooted = false;
     db.collection("compras").orderBy("createdAt", "desc").onSnapshot(function (snap) {
       var compras = [];
       snap.forEach(function (d) { compras.push(Object.assign({ id: d.id }, d.data())); });
       comprasCache = compras;
 
+      if (comprasBooted) {
+        snap.docChanges().forEach(function (change) {
+          if (change.type === "added" && change.doc.data().status === "pendente") {
+            var c = change.doc.data();
+            toast("⚠ Falta: " + c.itemName + (c.blockName ? " (" + c.blockName + ")" : ""));
+          }
+        });
+      }
+      comprasBooted = true;
+
       renderCompras();
+      renderCarrinho();
     });
 
     db.collection("users").where("role", "==", "user").get().then(function (snap) {
@@ -462,7 +483,7 @@
     var container = document.getElementById("dashboard-recent");
     container.innerHTML = recent.length ? recent.map(function (b) {
       return '' +
-        '<div class="list-row ' + b.status + '">' +
+        '<div class="list-row ' + b.status + '" data-id="' + b.id + '">' +
         '<div class="row-main">' +
         '<div class="row-title">' + b.name + '</div>' +
         '<div class="row-sub">Para ' + (b.assignedToName || "—") + ' · ' + fmtDate(b.createdAt) + '</div>' +
@@ -470,6 +491,10 @@
         '<div class="row-side">' + statusBadge(b.status) + '</div>' +
         '</div>';
     }).join("") : '<div class="empty-state"><h3>Nenhuma lista ainda</h3><p>Crie a primeira lista na aba "Nova Lista".</p></div>';
+
+    container.querySelectorAll(".list-row").forEach(function (row) {
+      row.addEventListener("click", function () { openBlockDetail(row.dataset.id); });
+    });
   }
 
   /* ============================================================
@@ -739,6 +764,42 @@
     renderBlocoBuilder();
   });
 
+  function resetNovoBlocoForm() {
+    editingBlockId = null;
+    document.getElementById("novo-bloco-titulo").textContent = "Nova lista";
+    document.getElementById("btn-enviar-bloco").textContent = "Criar e enviar lista";
+    document.getElementById("bloco-nome").value = "";
+    document.getElementById("bloco-descricao").value = "";
+    document.getElementById("bloco-select-modelo").value = "";
+    document.getElementById("bloco-destinatario").value = "";
+    blockBuilderItems = [];
+    blockBuilderModelIds = [];
+    renderBlocoBuilder();
+  }
+
+  // Ao entrar em "Nova Lista" pelo menu lateral, sempre começa em branco —
+  // só entra em modo de edição via o botão "Editar" no detalhe da lista.
+  var novoBlocoNavItem = document.querySelector('.nav-item[data-view="novo-bloco"]');
+  if (novoBlocoNavItem) novoBlocoNavItem.addEventListener("click", resetNovoBlocoForm);
+
+  /** Abre a lista existente no mesmo formulário de "Nova Lista", pra editar
+      e reenviar sem precisar apagar e recriar do zero. */
+  function openBlockEditor(id) {
+    var b = blocksCache.find(function (x) { return x.id === id; });
+    if (!b) return;
+
+    editingBlockId = id;
+    document.getElementById("novo-bloco-titulo").textContent = "Editar lista";
+    document.getElementById("btn-enviar-bloco").textContent = "Salvar e reenviar";
+    document.getElementById("bloco-nome").value = b.name;
+    document.getElementById("bloco-descricao").value = b.description || "";
+    document.getElementById("bloco-destinatario").value = b.assignedTo || "";
+    blockBuilderItems = b.items.map(function (i) { return Object.assign({}, i); });
+    blockBuilderModelIds = (b.modelIds || []).slice();
+    renderBlocoBuilder();
+    switchView("novo-bloco");
+  }
+
   document.getElementById("btn-enviar-bloco").addEventListener("click", function () {
     var name = document.getElementById("bloco-nome").value.trim();
     var description = document.getElementById("bloco-descricao").value.trim();
@@ -750,25 +811,29 @@
     if (!assignedTo) { toast("Selecione para quem enviar."); return; }
     if (blockBuilderItems.length === 0) { toast("Adicione pelo menos um item."); return; }
 
-    db.collection("blocks").add({
+    var payload = {
       name: name,
       description: description,
       modelIds: blockBuilderModelIds, // comidas usadas para montar esta lista (apenas registro)
       assignedTo: assignedTo,
       assignedToName: assignedToName,
       items: blockBuilderItems,
-      status: STATUS.PENDENTE,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function () {
-      toast("Lista criada e enviada.");
-      document.getElementById("bloco-nome").value = "";
-      document.getElementById("bloco-descricao").value = "";
-      document.getElementById("bloco-select-modelo").value = "";
-      destSel.value = "";
-      blockBuilderItems = [];
-      blockBuilderModelIds = [];
-      renderBlocoBuilder();
+    };
+
+    var promise = editingBlockId
+      ? db.collection("blocks").doc(editingBlockId).update(Object.assign({}, payload, {
+          status: STATUS.PENDENTE,
+          flowRemoved: false
+        }))
+      : db.collection("blocks").add(Object.assign({}, payload, {
+          status: STATUS.PENDENTE,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }));
+
+    promise.then(function () {
+      toast(editingBlockId ? "Lista atualizada e reenviada." : "Lista criada e enviada.");
+      resetNovoBlocoForm();
       switchView("blocos");
     }).catch(function () {
       toast("Erro ao enviar lista.");
@@ -779,10 +844,11 @@
      BLOCOS / HISTÓRICO (leitura + status)
   ============================================================ */
   function renderBlockRow(b) {
+    var temFalta = b.items.some(function (i) { return i.falta; });
     return '' +
       '<div class="list-row ' + b.status + '" data-id="' + b.id + '">' +
       '<div class="row-main">' +
-      '<div class="row-title">' + b.name + '</div>' +
+      '<div class="row-title">' + b.name + (temFalta ? ' <span class="warn-tag" title="Tem item faltando">' + ICON_WARN + ' Falta item</span>' : '') + '</div>' +
       '<div class="row-sub">Para ' + (b.assignedToName || "—") + ' · ' + b.items.length + ' itens · ' + fmtDate(b.createdAt) + '</div>' +
       '</div>' +
       '<div class="row-side">' + statusBadge(b.status) + '</div>' +
@@ -790,11 +856,20 @@
   }
 
   function renderBlocos() {
-    var ativos = blocksCache.filter(function (b) { return b.status !== STATUS.FINALIZADO; });
+    var ativos = blocksCache.filter(function (b) { return b.status !== STATUS.FINALIZADO && !b.flowRemoved; });
     var container = document.getElementById("lista-blocos");
     container.innerHTML = ativos.length ? ativos.map(renderBlockRow).join("")
       : '<div class="empty-state"><h3>Nenhuma lista em andamento</h3><p>As listas enviadas aparecerão aqui até serem finalizadas.</p></div>';
     container.querySelectorAll(".list-row").forEach(function (row) {
+      row.addEventListener("click", function () { openBlockDetail(row.dataset.id); });
+    });
+
+    var removidas = blocksCache.filter(function (b) { return b.status !== STATUS.FINALIZADO && b.flowRemoved; });
+    var secaoRemovidas = document.querySelector(".fora-fluxo-section");
+    secaoRemovidas.classList.toggle("hidden", removidas.length === 0);
+    var containerRemovidas = document.getElementById("lista-blocos-removidas");
+    containerRemovidas.innerHTML = removidas.map(renderBlockRow).join("");
+    containerRemovidas.querySelectorAll(".list-row").forEach(function (row) {
       row.addEventListener("click", function () { openBlockDetail(row.dataset.id); });
     });
   }
@@ -809,9 +884,12 @@
     });
   }
 
+  var currentDetailBlockId = null;
+
   function openBlockDetail(id) {
     var b = blocksCache.find(function (x) { return x.id === id; });
     if (!b) return;
+    currentDetailBlockId = id;
     document.getElementById("detalhe-bloco-nome").textContent = b.name;
     document.getElementById("detalhe-bloco-destino").textContent = "Enviado para " + (b.assignedToName || "—") + " em " + fmtDate(b.createdAt);
     document.getElementById("detalhe-bloco-descricao").textContent = b.description || "";
@@ -838,8 +916,29 @@
 
     document.getElementById("detalhe-bloco-status").outerHTML =
       statusBadge(b.status).replace('<span class="badge', '<span id="detalhe-bloco-status" class="badge');
+
+    var podeEditar = b.status !== STATUS.FINALIZADO;
+    document.getElementById("btn-editar-bloco").classList.toggle("hidden", !podeEditar);
+    document.getElementById("btn-tirar-fluxo").classList.toggle("hidden", !podeEditar);
+    document.getElementById("btn-tirar-fluxo").textContent = b.flowRemoved ? "Devolver ao fluxo" : "Tirar do fluxo";
+
     document.getElementById("modal-bloco").classList.add("active");
   }
+
+  document.getElementById("btn-tirar-fluxo").addEventListener("click", function () {
+    var b = blocksCache.find(function (x) { return x.id === currentDetailBlockId; });
+    if (!b) return;
+    var novoValor = !b.flowRemoved;
+    db.collection("blocks").doc(b.id).update({ flowRemoved: novoValor }).then(function () {
+      toast(novoValor ? "Lista tirada do fluxo." : "Lista devolvida ao fluxo.");
+      document.getElementById("modal-bloco").classList.remove("active");
+    });
+  });
+
+  document.getElementById("btn-editar-bloco").addEventListener("click", function () {
+    document.getElementById("modal-bloco").classList.remove("active");
+    openBlockEditor(currentDetailBlockId);
+  });
 
   /** Admin marcando/desmarcando "falta" direto na lista — mesma mecânica
       do usuário: cria/remove o pedido correspondente em "compras". */
@@ -881,14 +980,9 @@
   ============================================================ */
   function renderCompras() {
     var container = document.getElementById("lista-compras");
-    var abertos = comprasCache.filter(function (c) { return c.status === "pendente" || c.status === "aprovado"; });
+    var pendentes = comprasCache.filter(function (c) { return c.status === "pendente"; });
 
-    container.innerHTML = abertos.length ? abertos.map(function (c) {
-      var acoes = c.status === "pendente"
-        ? '<button class="btn btn-secondary small btn-aprovar" data-id="' + c.id + '">Vai comprar</button>' +
-          '<button class="btn btn-danger small btn-rejeitar" data-id="' + c.id + '">Não vai comprar</button>'
-        : '<button class="btn btn-secondary small btn-comprado" data-id="' + c.id + '">Marcar como comprado</button>';
-
+    container.innerHTML = pendentes.length ? pendentes.map(function (c) {
       return '' +
         '<div class="list-row" data-id="' + c.id + '" style="cursor:default;">' +
         '<div class="row-main">' +
@@ -898,7 +992,8 @@
         '</div>' +
         '<div class="row-side flex gap-2">' +
         '<button class="btn btn-ghost small btn-sugestao" data-id="' + c.id + '">' + (c.adminNote ? "Editar sugestão" : "Sugestão") + '</button>' +
-        acoes +
+        '<button class="btn btn-secondary small btn-aprovar" data-id="' + c.id + '">' + ICON_CHECK + ' Vai comprar</button>' +
+        '<button class="btn btn-danger small btn-rejeitar" data-id="' + c.id + '">' + ICON_X + ' Não vai comprar</button>' +
         '</div>' +
         '</div>';
     }).join("") : '<div class="empty-state"><h3>Nada pendente na despensa</h3></div>';
@@ -910,7 +1005,7 @@
           status: "aprovado",
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(function () {
-          toast("Item marcado para compra.");
+          toast("Item foi para o carrinho.");
         });
       });
     });
@@ -925,6 +1020,46 @@
         });
       });
     });
+    container.querySelectorAll(".btn-sugestao").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var atual = comprasCache.find(function (c) { return c.id === btn.dataset.id; });
+        var nota = prompt("Sugestão para quem vai comprar (ex.: onde encontrar, marca, etc.):", (atual && atual.adminNote) || "");
+        if (nota === null) return;
+        db.collection("compras").doc(btn.dataset.id).update({
+          adminNote: nota.trim(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function () {
+          toast("Sugestão salva.");
+        });
+      });
+    });
+  }
+
+  /* ============================================================
+     CARRINHO — itens já aprovados, prontos para comprar
+     (mesma ideia da tela "Precisa comprar" do usuário, só que aqui
+     o admin também pode marcar como já comprado)
+  ============================================================ */
+  function renderCarrinho() {
+    var container = document.getElementById("lista-carrinho");
+    var aprovados = comprasCache.filter(function (c) { return c.status === "aprovado"; });
+
+    container.innerHTML = aprovados.length ? aprovados.map(function (c) {
+      return '' +
+        '<div class="list-row" data-id="' + c.id + '" style="cursor:default;">' +
+        '<div class="row-main">' +
+        '<div class="row-title">' + c.itemName + '</div>' +
+        '<div class="row-sub">' + c.quantity + ' un. · ' + (c.blockName || "Item avulso") + '</div>' +
+        (c.adminNote ? '<div class="row-sub">💡 ' + c.adminNote + '</div>' : '') +
+        '</div>' +
+        '<div class="row-side flex gap-2">' +
+        '<button class="btn btn-ghost small btn-sugestao" data-id="' + c.id + '">' + (c.adminNote ? "Editar sugestão" : "Sugestão") + '</button>' +
+        '<button class="btn btn-secondary small btn-comprado" data-id="' + c.id + '">' + ICON_CHECK + ' Comprado</button>' +
+        '</div>' +
+        '</div>';
+    }).join("") : '<div class="empty-state"><h3>Carrinho vazio</h3><p>Itens aprovados na despensa aparecem aqui.</p></div>';
+
     container.querySelectorAll(".btn-comprado").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.stopPropagation();
@@ -952,9 +1087,9 @@
     });
   }
 
-  /** Admin adicionando um item direto em "precisa comprar", sem esperar
-      pedido de um usuário — mesma mecânica usada pelo usuário, mas já
-      entra como "aprovado" porque quem decidiu foi o próprio admin. */
+  /** Admin adicionando um item direto no carrinho, sem esperar pedido de
+      um usuário — mesma mecânica usada pelo usuário, mas já entra como
+      "aprovado" porque quem decidiu foi o próprio admin. */
   document.getElementById("btn-add-compra-admin").addEventListener("click", function () {
     var nome = document.getElementById("compra-admin-nome").value.trim();
     var qtd = Math.max(1, parseInt(document.getElementById("compra-admin-qtd").value, 10) || 1);
@@ -973,7 +1108,7 @@
     }).then(function () {
       document.getElementById("compra-admin-nome").value = "";
       document.getElementById("compra-admin-qtd").value = "1";
-      toast("Item adicionado à despensa.");
+      toast("Item adicionado ao carrinho.");
     });
   });
 

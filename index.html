@@ -75,6 +75,7 @@
       <div class="nav-item" data-view="blocos"><span class="dot"></span>Listas</div>
       <div class="nav-item" data-view="historico"><span class="dot"></span>Histórico</div>
       <div class="nav-item" data-view="compras"><span class="dot"></span>despensa</div>
+      <div class="nav-item" data-view="carrinho"><span class="dot"></span>Carrinho</div>
     </nav>
 
     <div class="sidebar-footer">
@@ -102,11 +103,11 @@
       </div>
 
       <div class="metric-row">
-        <div class="metric"><div class="value" id="m-itens">0</div><div class="label">Itens cadastrados</div></div>
-        <div class="metric"><div class="value" id="m-modelos">0</div><div class="label">Comidas</div></div>
-        <div class="metric"><div class="value" id="m-pendentes">0</div><div class="label">Comidas pendentes</div></div>
-        <div class="metric"><div class="value" id="m-andamento">0</div><div class="label">Em andamento</div></div>
-        <div class="metric"><div class="value" id="m-finalizados">0</div><div class="label">Finalizados</div></div>
+        <div class="metric metric-link" data-view="itens"><div class="value" id="m-itens">0</div><div class="label">Itens cadastrados</div></div>
+        <div class="metric metric-link" data-view="modelos"><div class="value" id="m-modelos">0</div><div class="label">Comidas</div></div>
+        <div class="metric metric-link" data-view="blocos"><div class="value" id="m-pendentes">0</div><div class="label">Listas pendentes</div></div>
+        <div class="metric metric-link" data-view="blocos"><div class="value" id="m-andamento">0</div><div class="label">Em andamento</div></div>
+        <div class="metric metric-link" data-view="historico"><div class="value" id="m-finalizados">0</div><div class="label">Finalizados</div></div>
       </div>
 
       <h2 class="mb-2">Atividade recente</h2>
@@ -191,7 +192,7 @@
     <section class="view" id="view-novo-bloco">
       <div class="page-head">
         <div>
-          <h1>Nova lista</h1>
+          <h1 id="novo-bloco-titulo">Nova lista</h1>
           <p class="subtitle">Comece vazio ou adicione uma ou mais comidas — a lista criada é independente das comidas usadas.</p>
         </div>
       </div>
@@ -244,6 +245,11 @@
         </div>
       </div>
       <div class="list" id="lista-blocos"></div>
+
+      <div class="fora-fluxo-section hidden" style="margin-top:24px;">
+        <div class="group-title" style="margin:0 0 8px;">Fora do fluxo</div>
+        <div class="list" id="lista-blocos-removidas"></div>
+      </div>
     </section>
 
     <!-- ---------- HISTÓRICO ---------- -->
@@ -262,12 +268,23 @@
       <div class="page-head">
         <div>
           <h1>Despensa</h1>
-          <p class="subtitle">Itens que os usuários marcaram como faltando, e itens que você quiser colocar direto na lista de compras.</p>
+          <p class="subtitle">Pedidos de compra dos usuários, aguardando sua decisão.</p>
+        </div>
+      </div>
+      <div class="list" id="lista-compras"></div>
+    </section>
+
+    <!-- ---------- CARRINHO ---------- -->
+    <section class="view" id="view-carrinho">
+      <div class="page-head">
+        <div>
+          <h1>Carrinho</h1>
+          <p class="subtitle">Itens já aprovados, prontos para comprar.</p>
         </div>
       </div>
 
       <div class="panel mb-3">
-        <h3 class="mb-2">Adicionar item direto</h3>
+        <h3 class="mb-2">Adicionar item direto ao carrinho</h3>
         <div class="field-grid">
           <div class="field-row">
             <label for="compra-admin-nome">Nome do item</label>
@@ -278,10 +295,10 @@
             <input type="number" id="compra-admin-qtd" min="1" value="1">
           </div>
         </div>
-        <button class="btn btn-primary" id="btn-add-compra-admin">Adicionar à despensa</button>
+        <button class="btn btn-primary" id="btn-add-compra-admin">Adicionar ao carrinho</button>
       </div>
 
-      <div class="list" id="lista-compras"></div>
+      <div class="list" id="lista-carrinho"></div>
     </section>
 
   </main>
@@ -321,7 +338,11 @@
     <div id="detalhe-bloco-itens" class="mb-3"></div>
     <div class="flex-between">
       <span class="badge" id="detalhe-bloco-status"></span>
-      <button class="btn btn-secondary" id="btn-fechar-detalhe">Fechar</button>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost small hidden" id="btn-tirar-fluxo">Tirar do fluxo</button>
+        <button class="btn btn-secondary small hidden" id="btn-editar-bloco">Editar</button>
+        <button class="btn btn-secondary" id="btn-fechar-detalhe">Fechar</button>
+      </div>
     </div>
   </div>
 </div>

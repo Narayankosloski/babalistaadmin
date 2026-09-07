@@ -326,6 +326,8 @@ html[data-theme="dark"] .theme-btn .icon-sun{ display:block; }
   color:var(--ink-muted);
   margin-top:2px;
 }
+.metric-link{ cursor:pointer; }
+.metric-link:hover{ border-color:var(--border-strong); background:var(--surface-sunken); }
 
 /* ---------- listas (itens / modelos / blocos) ---------- */
 .list{
@@ -349,6 +351,17 @@ html[data-theme="dark"] .theme-btn .icon-sun{ display:block; }
 .list-row .row-title{ font-weight:600; font-size:14.5px; }
 .list-row .row-sub{ font-size:13px; color:var(--ink-muted); margin-top:2px; }
 .list-row .row-side{ text-align:right; flex-shrink:0; font-size:13px; color:var(--ink-muted); }
+
+.warn-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  color:var(--status-pending);
+  font-size:11.5px;
+  font-weight:600;
+  margin-left:8px;
+  vertical-align:middle;
+}
 
 .empty-state{
   padding:48px 20px;
