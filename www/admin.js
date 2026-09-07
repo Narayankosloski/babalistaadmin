@@ -440,6 +440,7 @@
 
       renderModelos();
       fillModeloSelectNoBloco();
+      renderItens();
       renderDashboard();
     });
 
@@ -535,7 +536,8 @@
   function renderItens() {
     var container = document.getElementById("lista-itens");
     var termo = itensSearchTerm.trim().toLowerCase();
-    var itensFiltrados = itemsCache.filter(function (i) {
+
+    var itensFiltrados = itensCategoryFilter === "_comidas" ? [] : itemsCache.filter(function (i) {
       var passaBusca = !termo ||
         i.name.toLowerCase().indexOf(termo) !== -1 ||
         (i.description || "").toLowerCase().indexOf(termo) !== -1;
@@ -543,14 +545,36 @@
       return passaBusca && passaCategoria;
     });
 
-    itensFiltrados.sort(function (a, b) { return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }); });
+    // Comidas aparecem junto com os itens quando "Todas" ou "Comidas" está selecionado.
+    var comidasFiltradas = (itensCategoryFilter === "" || itensCategoryFilter === "_comidas") ? modelsCache.filter(function (m) {
+      return !termo ||
+        m.name.toLowerCase().indexOf(termo) !== -1 ||
+        (m.description || "").toLowerCase().indexOf(termo) !== -1;
+    }) : [];
 
-    container.innerHTML = itensFiltrados.length ? itensFiltrados.map(function (i) {
+    var linhas = itensFiltrados.map(function (i) { return { tipo: "item", nome: i.name, dado: i }; })
+      .concat(comidasFiltradas.map(function (m) { return { tipo: "comida", nome: m.name, dado: m }; }));
+
+    linhas.sort(function (a, b) { return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }); });
+
+    container.innerHTML = linhas.length ? linhas.map(function (linha) {
+      if (linha.tipo === "comida") {
+        var m = linha.dado;
+        return '' +
+          '<div class="list-row" data-id="' + m.id + '" data-tipo="comida">' +
+          '<div class="row-main">' +
+          '<div class="row-title">' + m.name + ' <span class="small muted">— Comida</span></div>' +
+          '<div class="row-sub">' + (m.description || "Sem descrição") + '</div>' +
+          '</div>' +
+          '<div class="row-side">' + m.items.length + ' ' + (m.items.length === 1 ? "item" : "itens") + '</div>' +
+          '</div>';
+      }
+      var i = linha.dado;
       var comidas = modelsCache.filter(function (m) {
         return m.items.some(function (it) { return it.itemId === i.id; });
       }).map(function (m) { return m.name; });
       return '' +
-        '<div class="list-row" data-id="' + i.id + '">' +
+        '<div class="list-row" data-id="' + i.id + '" data-tipo="item">' +
         '<div class="row-main">' +
         '<div class="row-title">' + i.name + (i.categoryId ? ' <span class="small muted">— ' + categoryLabel(i.categoryId) + '</span>' : '') + '</div>' +
         '<div class="row-sub">' + (i.description || "Sem descrição") + '</div>' +
@@ -562,8 +586,11 @@
       ? '<div class="empty-state"><h3>Nenhum item encontrado</h3><p>Tente buscar por outro termo ou categoria.</p></div>'
       : '<div class="empty-state"><h3>Nenhum item cadastrado</h3><p>Cadastre o primeiro item para usar na comidas e listas.</p></div>');
 
-    container.querySelectorAll(".list-row").forEach(function (row) {
+    container.querySelectorAll('.list-row[data-tipo="item"]').forEach(function (row) {
       row.addEventListener("click", function () { openItemModal(row.dataset.id); });
+    });
+    container.querySelectorAll('.list-row[data-tipo="comida"]').forEach(function (row) {
+      row.addEventListener("click", function () { openModelEditor(row.dataset.id); });
     });
   }
 
@@ -580,6 +607,7 @@
     if (!container) return;
 
     var chips = '<span class="chip' + (itensCategoryFilter ? '' : ' active') + '" data-id="">Todas</span>' +
+      '<span class="chip' + (itensCategoryFilter === "_comidas" ? ' active' : '') + '" data-id="_comidas">Comidas</span>' +
       categoriesCache.map(function (c) {
         return '<span class="chip' + (itensCategoryFilter === c.id ? ' active' : '') + '" data-id="' + c.id + '">' +
           c.name +
@@ -587,7 +615,7 @@
           '</span>';
       }).join("");
 
-    container.innerHTML = chips || '<span class="small muted">Nenhuma categoria criada ainda.</span>';
+    container.innerHTML = chips;
 
     container.querySelectorAll(".chip").forEach(function (chip) {
       chip.addEventListener("click", function () {
