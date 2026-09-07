@@ -27,6 +27,12 @@
   var auth = firebase.auth();
   var db   = firebase.firestore();
 
+  // Versão publicada deste site — comparada com "config/app" no Firestore
+  // pra avisar quando tiver uma versão mais nova (ver btn-salvar-versao-admin
+  // no Perfil, onde essa versão é publicada depois de cada deploy).
+  var APP_VERSION = "1.0.0";
+  var currentProfile = null; // perfil (nome, role) da pessoa logada
+
   // No navegador (GitHub Pages), os dois sites (admin e usuário) ficam no
   // mesmo domínio e compartilham o localStorage — por isso usamos SESSION
   // aqui, pra logar em um não derrubar o outro. Já dentro do app instalado
@@ -158,6 +164,8 @@
 
       document.getElementById("user-name").textContent = profile.name || user.email;
       document.getElementById("user-initial").textContent = (profile.name || user.email).charAt(0).toUpperCase();
+      currentProfile = profile;
+      renderPerfilHeader(user);
 
       showApp();
       if (!bootStarted) { bootStarted = true; boot(); }
@@ -216,9 +224,12 @@
   function switchView(name) {
     document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
     document.querySelectorAll(".nav-item").forEach(function (n) { n.classList.remove("active"); });
+    document.querySelectorAll(".tab-item").forEach(function (t) { t.classList.remove("active"); });
     document.getElementById("view-" + name).classList.add("active");
     var nav = document.querySelector('.nav-item[data-view="' + name + '"]');
     if (nav) nav.classList.add("active");
+    var tab = document.querySelector('.tab-item[data-view="' + name + '"]');
+    if (tab) tab.classList.add("active");
   }
 
   document.querySelectorAll(".nav-item[data-view]").forEach(function (el) {
@@ -444,7 +455,8 @@
       snap.forEach(function (d) { compras.push(Object.assign({ id: d.id }, d.data())); });
       comprasCache = compras;
 
-      if (comprasBooted) {
+      var notificar = !currentProfile || currentProfile.notifyCompras !== false;
+      if (comprasBooted && notificar) {
         snap.docChanges().forEach(function (change) {
           if (change.type === "added" && change.doc.data().status === "pendente") {
             var c = change.doc.data();
@@ -454,18 +466,26 @@
       }
       comprasBooted = true;
 
+      var temPendente = notificar && comprasCache.some(function (c) { return c.status === "pendente"; });
+      document.getElementById("tab-badge-inicio").classList.toggle("hidden", !temPendente);
+
       renderCompras();
       renderCarrinho();
+      renderDashboard();
     });
 
-    db.collection("users").where("role", "==", "user").get().then(function (snap) {
+    db.collection("users").where("role", "==", "user").onSnapshot(function (snap) {
       var users = [];
       snap.forEach(function (d) { users.push(Object.assign({ id: d.id }, d.data())); });
       usersCache = users;
 
       var sel = document.getElementById("bloco-destinatario");
+      var valorAtual = sel.value;
       sel.innerHTML = '<option value="">Selecione um usuário</option>' +
         users.map(function (u) { return '<option value="' + u.id + '">' + (u.name || u.id) + '</option>'; }).join("");
+      sel.value = valorAtual;
+
+      renderUsuarios();
     });
   }
 
@@ -478,6 +498,8 @@
     document.getElementById("m-pendentes").textContent = blocksCache.filter(function (b) { return b.status === STATUS.PENDENTE; }).length;
     document.getElementById("m-andamento").textContent = blocksCache.filter(function (b) { return b.status === STATUS.ACEITO || b.status === STATUS.ANDAMENTO; }).length;
     document.getElementById("m-finalizados").textContent = blocksCache.filter(function (b) { return b.status === STATUS.FINALIZADO; }).length;
+    document.getElementById("m-despensa").textContent = comprasCache.filter(function (c) { return c.status === "pendente"; }).length;
+    document.getElementById("m-carrinho").textContent = comprasCache.filter(function (c) { return c.status === "aprovado"; }).length;
 
     var recent = blocksCache.slice(0, 5);
     var container = document.getElementById("dashboard-recent");
@@ -961,6 +983,10 @@
       }).then(function (ref) {
         item.compraId = ref.id;
         db.collection("blocks").doc(block.id).update({ items: block.items });
+      }).catch(function (err) {
+        console.error("Erro ao criar pedido de falta:", err);
+        toast("Erro ao marcar falta (" + (err && err.code || "veja o console") + ").");
+        item.falta = false; // desfaz visualmente já que não foi salvo
       });
     } else if (item.compraId) {
       db.collection("compras").doc(item.compraId).delete();
@@ -1109,7 +1135,120 @@
       document.getElementById("compra-admin-nome").value = "";
       document.getElementById("compra-admin-qtd").value = "1";
       toast("Item adicionado ao carrinho.");
+    }).catch(function (err) {
+      console.error("Erro ao adicionar ao carrinho:", err);
+      toast("Erro ao adicionar (" + (err && err.code || "veja o console") + ").");
     });
+  });
+
+  /* ============================================================
+     PERFIL — meus dados, gestão de usuários, configurações, sobre
+  ============================================================ */
+  function renderPerfilHeader(user) {
+    var nome = currentProfile.name || user.email;
+    document.getElementById("perfil-avatar").textContent = nome.charAt(0).toUpperCase();
+    document.getElementById("perfil-nome-atual").textContent = nome;
+    document.getElementById("perfil-email-atual").textContent = user.email;
+    document.getElementById("perfil-nome-input").value = currentProfile.name || "";
+    document.getElementById("cfg-notify-compras").checked = currentProfile.notifyCompras !== false; // padrão: ligado
+  }
+
+  document.getElementById("btn-salvar-meu-nome").addEventListener("click", function () {
+    var nome = document.getElementById("perfil-nome-input").value.trim();
+    if (!nome) { toast("Digite um nome."); return; }
+    db.collection("users").doc(auth.currentUser.uid).update({ name: nome }).then(function () {
+      currentProfile.name = nome;
+      document.getElementById("user-name").textContent = nome;
+      document.getElementById("user-initial").textContent = nome.charAt(0).toUpperCase();
+      renderPerfilHeader(auth.currentUser);
+      toast("Nome atualizado.");
+    }).catch(function () {
+      toast("Erro ao salvar nome.");
+    });
+  });
+
+  document.getElementById("cfg-notify-compras").addEventListener("change", function (e) {
+    currentProfile.notifyCompras = e.target.checked;
+    db.collection("users").doc(auth.currentUser.uid).update({ notifyCompras: e.target.checked }).catch(function () {
+      toast("Erro ao salvar configuração.");
+    });
+  });
+
+  /** Lista de usuários (role "user") pra o admin poder corrigir/editar o
+      nome de quem tem acesso ao site do usuário. */
+  function renderUsuarios() {
+    var container = document.getElementById("lista-usuarios");
+    if (!container) return;
+    container.innerHTML = usersCache.length ? usersCache.map(function (u) {
+      return '' +
+        '<div class="list-row" style="cursor:default;" data-id="' + u.id + '">' +
+        '<div class="row-main">' +
+        '<div class="row-title">' + (u.name || "(sem nome)") + '</div>' +
+        '<div class="row-sub">' + (u.email || u.id) + '</div>' +
+        '</div>' +
+        '<button class="btn btn-ghost small btn-editar-usuario" data-id="' + u.id + '">Editar nome</button>' +
+        '</div>';
+    }).join("") : '<div class="empty-state"><h3>Nenhum usuário cadastrado ainda</h3></div>';
+
+    container.querySelectorAll(".btn-editar-usuario").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var u = usersCache.find(function (x) { return x.id === btn.dataset.id; });
+        if (!u) return;
+        var novoNome = prompt("Nome de " + (u.email || u.id) + ":", u.name || "");
+        if (novoNome === null) return;
+        novoNome = novoNome.trim();
+        if (!novoNome) { toast("O nome não pode ficar vazio."); return; }
+        db.collection("users").doc(u.id).update({ name: novoNome }).then(function () {
+          toast("Nome atualizado.");
+        }).catch(function () {
+          toast("Erro ao atualizar nome.");
+        });
+      });
+    });
+  }
+
+  document.getElementById("btn-sair-perfil").addEventListener("click", function () {
+    auth.signOut();
+  });
+
+  /* ---------- versão do app / aviso de atualização ---------- */
+  document.getElementById("sobre-versao-atual").textContent = APP_VERSION;
+
+  document.getElementById("btn-salvar-versao-admin").addEventListener("click", function () {
+    var v = document.getElementById("sobre-versao-admin-input").value.trim();
+    if (!v) { toast("Digite o número da versão."); return; }
+    db.collection("config").doc("app").set({ latestVersionAdmin: v }, { merge: true }).then(function () {
+      toast("Versão do admin publicada.");
+    }).catch(function () {
+      toast("Erro ao salvar versão.");
+    });
+  });
+
+  document.getElementById("btn-salvar-versao-user").addEventListener("click", function () {
+    var v = document.getElementById("sobre-versao-user-input").value.trim();
+    if (!v) { toast("Digite o número da versão."); return; }
+    db.collection("config").doc("app").set({ latestVersionUser: v }, { merge: true }).then(function () {
+      toast("Versão do usuário publicada.");
+    }).catch(function () {
+      toast("Erro ao salvar versão.");
+    });
+  });
+
+  document.getElementById("btn-atualizar-agora").addEventListener("click", function () {
+    location.reload();
+  });
+
+  db.collection("config").doc("app").onSnapshot(function (snap) {
+    var data = snap.exists ? snap.data() : {};
+    document.getElementById("sobre-versao-admin-input").placeholder = data.latestVersionAdmin || "nenhuma publicada ainda";
+    document.getElementById("sobre-versao-user-input").placeholder = data.latestVersionUser || "nenhuma publicada ainda";
+    var desatualizado = !!data.latestVersionAdmin && data.latestVersionAdmin !== APP_VERSION;
+    document.getElementById("update-banner").classList.toggle("hidden", !desatualizado);
+  });
+
+  /* ---------- barra de navegação inferior (mobile) ---------- */
+  document.querySelectorAll(".tab-item[data-view]").forEach(function (el) {
+    el.addEventListener("click", function () { switchView(el.dataset.view); });
   });
 
 })();

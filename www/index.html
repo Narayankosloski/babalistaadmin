@@ -61,6 +61,11 @@
     </button>
   </header>
 
+  <div class="update-banner hidden" id="update-banner">
+    <span>Uma nova versão do app está disponível.</span>
+    <button class="btn btn-primary small" id="btn-atualizar-agora">Atualizar agora</button>
+  </div>
+
   <div class="nav-backdrop" id="nav-backdrop"></div>
 
   <!-- ===================== SIDEBAR ===================== -->
@@ -76,6 +81,7 @@
       <div class="nav-item" data-view="historico"><span class="dot"></span>Histórico</div>
       <div class="nav-item" data-view="compras"><span class="dot"></span>despensa</div>
       <div class="nav-item" data-view="carrinho"><span class="dot"></span>Carrinho</div>
+      <div class="nav-item" data-view="perfil"><span class="dot"></span>Perfil</div>
     </nav>
 
     <div class="sidebar-footer">
@@ -108,6 +114,8 @@
         <div class="metric metric-link" data-view="blocos"><div class="value" id="m-pendentes">0</div><div class="label">Listas pendentes</div></div>
         <div class="metric metric-link" data-view="blocos"><div class="value" id="m-andamento">0</div><div class="label">Em andamento</div></div>
         <div class="metric metric-link" data-view="historico"><div class="value" id="m-finalizados">0</div><div class="label">Finalizados</div></div>
+        <div class="metric metric-link" data-view="compras"><div class="value" id="m-despensa">0</div><div class="label">Pedidos na despensa</div></div>
+        <div class="metric metric-link" data-view="carrinho"><div class="value" id="m-carrinho">0</div><div class="label">Itens no carrinho</div></div>
       </div>
 
       <h2 class="mb-2">Atividade recente</h2>
@@ -301,7 +309,90 @@
       <div class="list" id="lista-carrinho"></div>
     </section>
 
+    <!-- ---------- PERFIL ---------- -->
+    <section class="view" id="view-perfil">
+      <div class="page-head">
+        <div>
+          <h1>Perfil</h1>
+          <p class="subtitle">Seus dados, usuários e configurações do app.</p>
+        </div>
+      </div>
+
+      <div class="panel mb-3 flex gap-2" style="align-items:center;">
+        <div class="user-avatar" id="perfil-avatar" style="width:44px;height:44px;font-size:16px;">A</div>
+        <div>
+          <div style="font-weight:600;" id="perfil-nome-atual">—</div>
+          <div class="small muted" id="perfil-email-atual">—</div>
+        </div>
+      </div>
+
+      <div class="panel mb-3">
+        <h3 class="mb-2">Meus dados</h3>
+        <div class="field-row">
+          <label for="perfil-nome-input">Nome</label>
+          <input type="text" id="perfil-nome-input" placeholder="Seu nome">
+        </div>
+        <button class="btn btn-primary" id="btn-salvar-meu-nome">Salvar nome</button>
+      </div>
+
+      <div class="panel mb-3">
+        <h3 class="mb-2">Usuários</h3>
+        <p class="small muted mb-2">Edite o nome de quem tem acesso ao site do usuário.</p>
+        <div class="list" id="lista-usuarios"></div>
+      </div>
+
+      <div class="panel mb-3">
+        <h3 class="mb-2">Configurações</h3>
+        <label class="flex gap-2" style="align-items:center;cursor:pointer;">
+          <input type="checkbox" id="cfg-notify-compras" style="width:auto;">
+          <span class="small">Avisar quando chegar um novo pedido de compra</span>
+        </label>
+      </div>
+
+      <div class="panel mb-3">
+        <h3 class="mb-2">Sobre</h3>
+        <p class="small muted mb-2">Versão instalada neste site: <strong id="sobre-versao-atual"></strong></p>
+        <p class="small mb-3">
+          <a href="https://github.com/Narayankosloski/babalistaadmin" target="_blank" rel="noopener" style="color:var(--accent);">Ver código no GitHub ↗</a>
+        </p>
+        <div class="field-row">
+          <label for="sobre-versao-admin-input">Publicar versão atual do site admin</label>
+          <input type="text" id="sobre-versao-admin-input" placeholder="Ex: 1.1.0">
+        </div>
+        <button class="btn btn-secondary small mb-3" id="btn-salvar-versao-admin">Salvar versão (admin)</button>
+        <div class="field-row">
+          <label for="sobre-versao-user-input">Publicar versão atual do site do usuário</label>
+          <input type="text" id="sobre-versao-user-input" placeholder="Ex: 1.1.0">
+        </div>
+        <button class="btn btn-secondary small" id="btn-salvar-versao-user">Salvar versão (usuário)</button>
+      </div>
+
+      <button class="btn btn-danger btn-block" id="btn-sair-perfil">Sair</button>
+    </section>
+
   </main>
+
+  <nav class="bottom-tabbar">
+    <button class="tab-item active" data-view="dashboard">
+      <span class="tab-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+        <span class="tab-badge hidden" id="tab-badge-inicio"></span>
+      </span>
+      <span>Início</span>
+    </button>
+    <button class="tab-item" data-view="blocos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span>Listas</span>
+    </button>
+    <button class="tab-item" data-view="carrinho">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span>Carrinho</span>
+    </button>
+    <button class="tab-item" data-view="perfil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </button>
+  </nav>
 </div>
 
 <!-- ===================== MODAL: ITEM ===================== -->
