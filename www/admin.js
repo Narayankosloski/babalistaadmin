@@ -487,6 +487,12 @@
 
       renderUsuarios();
     });
+
+    db.collection("users").where("role", "==", "admin").onSnapshot(function (snap) {
+      var admins = [];
+      snap.forEach(function (d) { admins.push(Object.assign({ id: d.id }, d.data())); });
+      renderAdmins(admins);
+    });
   }
 
   /* ============================================================
@@ -940,9 +946,11 @@
       statusBadge(b.status).replace('<span class="badge', '<span id="detalhe-bloco-status" class="badge');
 
     var podeEditar = b.status !== STATUS.FINALIZADO;
+    var podeExcluir = b.flowRemoved || b.status === STATUS.FINALIZADO;
     document.getElementById("btn-editar-bloco").classList.toggle("hidden", !podeEditar);
     document.getElementById("btn-tirar-fluxo").classList.toggle("hidden", !podeEditar);
     document.getElementById("btn-tirar-fluxo").textContent = b.flowRemoved ? "Devolver ao fluxo" : "Tirar do fluxo";
+    document.getElementById("btn-excluir-bloco").classList.toggle("hidden", !podeExcluir);
 
     document.getElementById("modal-bloco").classList.add("active");
   }
@@ -960,6 +968,18 @@
   document.getElementById("btn-editar-bloco").addEventListener("click", function () {
     document.getElementById("modal-bloco").classList.remove("active");
     openBlockEditor(currentDetailBlockId);
+  });
+
+  document.getElementById("btn-excluir-bloco").addEventListener("click", function () {
+    var b = blocksCache.find(function (x) { return x.id === currentDetailBlockId; });
+    if (!b) return;
+    if (!confirm('Excluir a lista "' + b.name + '" definitivamente? Essa ação não pode ser desfeita.')) return;
+    db.collection("blocks").doc(b.id).delete().then(function () {
+      toast("Lista excluída.");
+      document.getElementById("modal-bloco").classList.remove("active");
+    }).catch(function () {
+      toast("Erro ao excluir lista.");
+    });
   });
 
   /** Admin marcando/desmarcando "falta" direto na lista — mesma mecânica
@@ -1205,6 +1225,22 @@
         });
       });
     });
+  }
+
+  /** Lista de administradores (role "admin") — apenas leitura, cada admin
+      edita o próprio nome em "Meus dados". */
+  function renderAdmins(admins) {
+    var container = document.getElementById("lista-admins");
+    if (!container) return;
+    container.innerHTML = admins.length ? admins.map(function (a) {
+      return '' +
+        '<div class="list-row" style="cursor:default;" data-id="' + a.id + '">' +
+        '<div class="row-main">' +
+        '<div class="row-title">' + (a.name || "(sem nome)") + '</div>' +
+        '<div class="row-sub">' + (a.email || a.id) + '</div>' +
+        '</div>' +
+        '</div>';
+    }).join("") : '<div class="empty-state"><h3>Nenhum administrador cadastrado</h3></div>';
   }
 
   document.getElementById("btn-sair-perfil").addEventListener("click", function () {
