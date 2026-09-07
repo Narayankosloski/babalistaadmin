@@ -1,5 +1,9 @@
 {
   "appId": "com.babalindaodeus.admin",
   "appName": "Baba Lindao Deus Admin",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "url": "https://narayankosloski.github.io/babalistaadmin/",
+    "cleartext": false
+  }
 }
