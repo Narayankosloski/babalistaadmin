@@ -75,7 +75,7 @@
     <nav class="nav-group">
       <div class="nav-item active" data-view="dashboard"><span class="dot"></span>Dashboard</div>
       <div class="nav-item" data-view="itens"><span class="dot"></span>Itens</div>
-      <div class="nav-item" data-view="modelos"><span class="dot"></span>comidas</div>
+      <div class="nav-item" data-view="comidas"><span class="dot"></span>comidas</div>
       <div class="nav-item" data-view="novo-bloco"><span class="dot"></span>Nova Lista</div>
       <div class="nav-item" data-view="blocos"><span class="dot"></span>Listas</div>
       <div class="nav-item" data-view="historico"><span class="dot"></span>Histórico</div>
@@ -110,7 +110,7 @@
 
       <div class="metric-row">
         <div class="metric metric-link" data-view="itens"><div class="value" id="m-itens">0</div><div class="label">Itens cadastrados</div></div>
-        <div class="metric metric-link" data-view="modelos"><div class="value" id="m-modelos">0</div><div class="label">Comidas</div></div>
+        <div class="metric metric-link" data-view="comidas"><div class="value" id="m-comidas">0</div><div class="label">Comidas</div></div>
         <div class="metric metric-link" data-view="blocos"><div class="value" id="m-pendentes">0</div><div class="label">Listas pendentes</div></div>
         <div class="metric metric-link" data-view="blocos"><div class="value" id="m-andamento">0</div><div class="label">Em andamento</div></div>
         <div class="metric metric-link" data-view="historico"><div class="value" id="m-finalizados">0</div><div class="label">Finalizados</div></div>
@@ -147,62 +147,62 @@
       <div class="list" id="lista-itens"></div>
     </section>
 
-    <!-- ---------- MODELOS ---------- -->
-    <section class="view" id="view-modelos">
+    <!-- ---------- COMIDAS ---------- -->
+    <section class="view" id="view-comidas">
       <div class="page-head">
         <div>
           <h1>Comidas</h1>
           <p class="subtitle">Conjuntos reutilizáveis de itens para agilizar a criação das listas.</p>
         </div>
-        <button class="btn btn-primary" id="btn-novo-modelo">Nova comida</button>
+        <button class="btn btn-primary" id="btn-nova-comida">Nova comida</button>
       </div>
-      <div class="list" id="lista-modelos"></div>
+      <div class="list" id="lista-comidas"></div>
     </section>
 
-    <!-- ---------- EDITOR DE MODELO (permanente) ---------- -->
-    <section class="view" id="view-editor-modelo">
+    <!-- ---------- EDITOR DE COMIDA (permanente) ---------- -->
+    <section class="view" id="view-editor-comida">
       <div class="page-head">
         <div>
-          <h1 id="editor-modelo-titulo">Novo modelo</h1>
-          <p class="subtitle">Alterações aqui atualizam o modelo permanentemente.</p>
+          <h1 id="editor-comida-titulo">Nova comida</h1>
+          <p class="subtitle">Alterações aqui atualizam a comida permanentemente.</p>
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-secondary" id="btn-cancelar-modelo">Cancelar</button>
-          <button class="btn btn-danger hidden" id="btn-excluir-modelo">Excluir modelo</button>
-          <button class="btn btn-primary" id="btn-salvar-modelo">Salvar modelo</button>
+          <button class="btn btn-secondary" id="btn-cancelar-comida">Cancelar</button>
+          <button class="btn btn-danger hidden" id="btn-excluir-comida">Excluir comida</button>
+          <button class="btn btn-primary" id="btn-salvar-comida">Salvar comida</button>
         </div>
       </div>
 
       <div class="two-col">
         <div class="panel">
           <div class="field-row">
-            <label for="modelo-nome">Nome do modelo</label>
-            <input type="text" id="modelo-nome" placeholder="Ex.: Modelo A">
+            <label for="comida-nome">Nome da comida</label>
+            <input type="text" id="comida-nome" placeholder="Ex.: Comida A">
           </div>
           <div class="field-row">
-            <label for="modelo-descricao">Descrição (opcional)</label>
-            <textarea id="modelo-descricao" placeholder="Para que serve este modelo"></textarea>
+            <label for="comida-descricao">Descrição (opcional)</label>
+            <textarea id="comida-descricao" placeholder="Para que serve esta comida"></textarea>
           </div>
         </div>
 
         <div class="panel">
-          <h3 class="mb-2">Itens do modelo</h3>
+          <h3 class="mb-2">Itens da comida</h3>
 
           <div class="field-row">
-            <label for="modelo-select-modelo">Adicionar itens de outra comida</label>
-            <select id="modelo-select-modelo">
+            <label for="comida-select-comida">Adicionar itens de outra comida</label>
+            <select id="comida-select-comida">
               <option value="">Selecione uma comida</option>
             </select>
           </div>
-          <button class="btn btn-secondary btn-block mb-2" id="btn-add-modelo-modelo">Adicionar comida</button>
+          <button class="btn btn-secondary btn-block mb-2" id="btn-add-comida-comida">Adicionar comida</button>
 
           <div class="field-row">
-            <label for="modelo-select-item">Adicionar item avulso</label>
-            <select id="modelo-select-item"></select>
+            <label for="comida-select-item">Adicionar item avulso</label>
+            <select id="comida-select-item"></select>
           </div>
-          <button class="btn btn-ghost btn-block mb-2" id="btn-novo-item-modelo" type="button">+ Cadastrar novo item</button>
-          <button class="btn btn-secondary btn-block mb-2" id="btn-add-item-modelo">Adicionar item</button>
-          <div id="modelo-itens-lista"></div>
+          <button class="btn btn-ghost btn-block mb-2" id="btn-novo-item-comida" type="button">+ Cadastrar novo item</button>
+          <button class="btn btn-secondary btn-block mb-2" id="btn-add-item-comida">Adicionar item</button>
+          <div id="comida-itens-lista"></div>
         </div>
       </div>
     </section>
@@ -234,12 +234,12 @@
 
         <div class="panel">
           <div class="field-row">
-            <label for="bloco-select-modelo">Adicionar itens de uma comida</label>
-            <select id="bloco-select-modelo">
+            <label for="bloco-select-comida">Adicionar itens de uma comida</label>
+            <select id="bloco-select-comida">
               <option value="">Selecione uma comida</option>
             </select>
           </div>
-          <button class="btn btn-secondary btn-block mb-2" id="btn-add-modelo-bloco">Adicionar comida à lista</button>
+          <button class="btn btn-secondary btn-block mb-2" id="btn-add-comida-bloco">Adicionar comida à lista</button>
 
           <div class="field-row">
             <label for="bloco-select-item">Adicionar item avulso</label>
