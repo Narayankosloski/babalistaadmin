@@ -67,19 +67,19 @@
      ESTADO
   ============================================================ */
   var itemsCache  = [];
-  var modelsCache = [];
+  var comidasCache = [];
   var blocksCache = [];
   var usersCache  = [];
   var comprasCache = [];
   var categoriesCache = [];
 
   var editingItemId  = null;
-  var editingModelId = null;   // null = novo modelo
-  var addItemFromModelBuilder = false; // true = "+ Cadastrar novo item" foi clicado dentro do editor de comida
+  var editingComidaId = null;  // null = nova comida
+  var addItemFromComidaBuilder = false; // true = "+ Cadastrar novo item" foi clicado dentro do editor de comida
   var editingBlockId = null;   // null = nova lista (não editando)
-  var modelBuilderItems = [];  // itens sendo editados no editor de modelo
+  var comidaBuilderItems = []; // itens sendo editados no editor de comida
   var blockBuilderItems = [];  // itens sendo montados no Novo Bloco
-  var blockBuilderModelIds = []; // comidas já somadas na lista em construção (apenas registro)
+  var blockBuilderComidaIds = []; // comidas já somadas na lista em construção (apenas registro)
   var itensSearchTerm = "";
   var itensCategoryFilter = ""; // "" = todas as categorias
 
@@ -269,7 +269,7 @@
   var ICON_X = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
   var ICON_WARN = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>';
 
-  /** Renderiza a lista editável de itens de um modelo/bloco em construção. */
+  /** Renderiza a lista editável de itens de uma comida/bloco em construção. */
   function renderBuilderItems(containerId, itemsArray, onChange) {
     var container = document.getElementById(containerId);
     if (itemsArray.length === 0) {
@@ -359,7 +359,7 @@
   }
 
   /**
-   * Soma os itens de uma comida (modelo) dentro de uma lista em construção,
+   * Soma os itens de uma comida dentro de uma lista em construção,
    * marcando cada item com a comida de origem (modelId/modelName) para
    * depois ser possível mostrar "o que vai em cada comida" na lista.
    * Se a mesma comida for adicionada de novo, as quantidades dela se somam;
@@ -368,32 +368,58 @@
    * editar aqui nunca altera a comida original, e alterar a comida depois
    * não muda listas já criadas.
    */
-  function addModeloToBuilder(itemsArray, modelId) {
-    if (!modelId) return;
-    var model = modelsCache.find(function (m) { return m.id === modelId; });
-    if (!model) return;
+  function addComidaToBuilder(itemsArray, comidaId) {
+    if (!comidaId) return;
+    var comida = comidasCache.find(function (m) { return m.id === comidaId; });
+    if (!comida) return;
 
-    model.items.forEach(function (it) {
-      var existing = itemsArray.find(function (x) { return x.itemId === it.itemId && x.modelId === modelId; });
+    comida.items.forEach(function (it) {
+      var existing = itemsArray.find(function (x) { return x.itemId === it.itemId && x.modelId === comidaId; });
       if (existing) {
         existing.quantity += it.quantity;
       } else {
-        itemsArray.push(Object.assign({}, it, { modelId: modelId, modelName: model.name }));
+        itemsArray.push(Object.assign({}, it, { modelId: comidaId, modelName: comida.name }));
       }
     });
 
-    if (blockBuilderModelIds.indexOf(modelId) === -1) {
-      blockBuilderModelIds.push(modelId);
+    if (blockBuilderComidaIds.indexOf(comidaId) === -1) {
+      blockBuilderComidaIds.push(comidaId);
     }
     if (!document.getElementById("bloco-nome").value) {
-      document.getElementById("bloco-nome").value = model.name;
+      document.getElementById("bloco-nome").value = comida.name;
     }
+  }
+
+  /**
+   * Soma os itens de uma comida dentro de outra comida em
+   * edição — mesma mecânica de addComidaToBuilder, mas sem os efeitos
+   * colaterais que só fazem sentido pra uma lista (marcar comida usada,
+   * preencher o nome da lista). Também é uma cópia independente: os itens
+   * entram com o modelId/modelName da comida somada, e depois de somado,
+   * alterar a comida de origem não muda mais esta comida (nem o contrário).
+   * Como a soma sempre usa os itens já achatados de cada comida (nunca uma
+   * referência viva a outra comida), funciona também com vários níveis de
+   * aninhamento sem risco de referência circular.
+   */
+  function addComidaToComidaBuilder(itemsArray, comidaId) {
+    if (!comidaId) return;
+    var comida = comidasCache.find(function (m) { return m.id === comidaId; });
+    if (!comida) return;
+
+    comida.items.forEach(function (it) {
+      var existing = itemsArray.find(function (x) { return x.itemId === it.itemId && x.modelId === comidaId; });
+      if (existing) {
+        existing.quantity += it.quantity;
+      } else {
+        itemsArray.push(Object.assign({}, it, { modelId: comidaId, modelName: comida.name }));
+      }
+    });
   }
 
   /** Agrupa uma lista de itens (com modelId/modelName) por comida de origem,
       mantendo o índice original de cada item em b.items (necessário para
       ações como marcar "falta"). Itens sem modelId caem em "Itens avulsos". */
-  function groupItemsByModel(items) {
+  function groupItemsByComida(items) {
     var groups = {};
     var order = [];
     items.forEach(function (it, idx) {
@@ -417,7 +443,7 @@
       itemsCache = items.filter(function (i) { return i.active !== false; });
 
       renderItens();
-      fillItemSelect(document.getElementById("modelo-select-item"), "Selecione um item");
+      fillItemSelect(document.getElementById("comida-select-item"), "Selecione um item");
       fillItemSelect(document.getElementById("bloco-select-item"), "Selecione um item");
       renderDashboard();
     });
@@ -429,17 +455,18 @@
 
       renderCategoriasFiltro();
       renderItens();
-      fillItemSelect(document.getElementById("modelo-select-item"), "Selecione um item");
+      fillItemSelect(document.getElementById("comida-select-item"), "Selecione um item");
       fillItemSelect(document.getElementById("bloco-select-item"), "Selecione um item");
     });
 
     db.collection("models").orderBy("name").onSnapshot(function (snap) {
       var models = [];
       snap.forEach(function (d) { models.push(Object.assign({ id: d.id }, d.data())); });
-      modelsCache = models;
+      comidasCache = models;
 
-      renderModelos();
-      fillModeloSelectNoBloco();
+      renderComidas();
+      fillComidaSelectNoBloco();
+      fillComidaSelectNoComida();
       renderItens();
       renderDashboard();
     });
@@ -505,7 +532,7 @@
   ============================================================ */
   function renderDashboard() {
     document.getElementById("m-itens").textContent = itemsCache.length;
-    document.getElementById("m-modelos").textContent = modelsCache.length;
+    document.getElementById("m-comidas").textContent = comidasCache.length;
     document.getElementById("m-pendentes").textContent = blocksCache.filter(function (b) { return b.status === STATUS.PENDENTE; }).length;
     document.getElementById("m-andamento").textContent = blocksCache.filter(function (b) { return b.status === STATUS.ACEITO || b.status === STATUS.ANDAMENTO; }).length;
     document.getElementById("m-finalizados").textContent = blocksCache.filter(function (b) { return b.status === STATUS.FINALIZADO; }).length;
@@ -546,7 +573,7 @@
     });
 
     // Comidas aparecem junto com os itens quando "Todas" ou "Comidas" está selecionado.
-    var comidasFiltradas = (itensCategoryFilter === "" || itensCategoryFilter === "_comidas") ? modelsCache.filter(function (m) {
+    var comidasFiltradas = (itensCategoryFilter === "" || itensCategoryFilter === "_comidas") ? comidasCache.filter(function (m) {
       return !termo ||
         m.name.toLowerCase().indexOf(termo) !== -1 ||
         (m.description || "").toLowerCase().indexOf(termo) !== -1;
@@ -570,7 +597,7 @@
           '</div>';
       }
       var i = linha.dado;
-      var comidas = modelsCache.filter(function (m) {
+      var comidas = comidasCache.filter(function (m) {
         return m.items.some(function (it) { return it.itemId === i.id; });
       }).map(function (m) { return m.name; });
       return '' +
@@ -590,7 +617,7 @@
       row.addEventListener("click", function () { openItemModal(row.dataset.id); });
     });
     container.querySelectorAll('.list-row[data-tipo="comida"]').forEach(function (row) {
-      row.addEventListener("click", function () { openModelEditor(row.dataset.id); });
+      row.addEventListener("click", function () { openComidaEditor(row.dataset.id); });
     });
   }
 
@@ -675,7 +702,7 @@
     openItemModal(null);
   });
 
-  document.getElementById("btn-novo-item-modelo").addEventListener("click", function () {
+  document.getElementById("btn-novo-item-comida").addEventListener("click", function () {
     addItemFromModelBuilder = true;
     openItemModal(null);
   });
@@ -693,7 +720,7 @@
     if (!name) { toast("O nome do item é obrigatório."); return; }
 
     var payload = { name: name, description: description, categoryId: categoryId, categoryName: categoryName };
-    var veioDoModelo = addItemFromModelBuilder && !editingItemId; // só faz sentido pra item novo
+    var veioDaComida = addItemFromComidaBuilder && !editingItemId; // só faz sentido pra item novo
     var promise = editingItemId
       ? db.collection("items").doc(editingItemId).update(payload)
       : db.collection("items").add(Object.assign({}, payload, {
@@ -707,11 +734,11 @@
       document.getElementById("modal-item").classList.remove("active");
       // Se o item foi criado a partir do editor de comida, adiciona ele
       // direto na comida sendo montada, sem perder o que já estava lá.
-      if (veioDoModelo && docRef && docRef.id) {
-        addItemToBuilder(modelBuilderItems, docRef.id);
-        renderModeloBuilder();
+      if (veioDaComida && docRef && docRef.id) {
+        addItemToBuilder(comidaBuilderItems, docRef.id);
+        renderComidaBuilder();
       }
-      addItemFromModelBuilder = false;
+      addItemFromComidaBuilder = false;
     }).catch(function () {
       toast("Erro ao salvar item.");
     });
@@ -727,11 +754,11 @@
   });
 
   /* ============================================================
-     MODELOS
+     COMIDAS
   ============================================================ */
-  function renderModelos() {
-    var container = document.getElementById("lista-modelos");
-    container.innerHTML = modelsCache.length ? modelsCache.map(function (m) {
+  function renderComidas() {
+    var container = document.getElementById("lista-comidas");
+    container.innerHTML = comidasCache.length ? comidasCache.map(function (m) {
       return '' +
         '<div class="list-row" data-id="' + m.id + '">' +
         '<div class="row-main">' +
@@ -740,21 +767,31 @@
         '</div>' +
         '<div class="row-side">' + m.items.length + ' ' + (m.items.length === 1 ? "item" : "itens") + '</div>' +
         '</div>';
-    }).join("") : '<div class="empty-state"><h3>Nenhum modelo cadastrado</h3><p>Crie um modelo para reutilizar conjuntos de itens.</p></div>';
+    }).join("") : '<div class="empty-state"><h3>Nenhuma comida cadastrada</h3><p>Crie uma comida para reutilizar conjuntos de itens.</p></div>';
 
     container.querySelectorAll(".list-row").forEach(function (row) {
-      row.addEventListener("click", function () { openModelEditor(row.dataset.id); });
+      row.addEventListener("click", function () { openComidaEditor(row.dataset.id); });
     });
   }
 
-  function fillModeloSelectNoBloco() {
-    var sel = document.getElementById("bloco-select-modelo");
+  function fillComidaSelectNoBloco() {
+    var sel = document.getElementById("bloco-select-comida");
     sel.innerHTML = '<option value="">Selecione uma comida</option>' +
-      modelsCache.map(function (m) { return '<option value="' + m.id + '">' + m.name + '</option>'; }).join("");
+      comidasCache.map(function (m) { return '<option value="' + m.id + '">' + m.name + '</option>'; }).join("");
   }
 
-  function openModelEditor(id) {
-    editingModelId = id || null;
+  /** Preenche o select de "comida dentro de comida" no editor de comida,
+      sempre deixando de fora a própria comida em edição (não faz sentido
+      somar uma comida dentro dela mesma). */
+  function fillComidaSelectNoComida() {
+    var sel = document.getElementById("comida-select-comida");
+    sel.innerHTML = '<option value="">Selecione uma comida</option>' +
+      comidasCache.filter(function (m) { return m.id !== editingComidaId; })
+        .map(function (m) { return '<option value="' + m.id + '">' + m.name + '</option>'; }).join("");
+  }
+
+  function openComidaEditor(id) {
+    editingComidaId = id || null;
 
     var loadModel = id
       ? db.collection("models").doc(id).get().then(function (snap) {
@@ -763,66 +800,75 @@
       : Promise.resolve(null);
 
     loadModel.then(function (model) {
-      document.getElementById("editor-modelo-titulo").textContent = model ? model.name : "Novo modelo";
-      document.getElementById("modelo-nome").value = model ? model.name : "";
-      document.getElementById("modelo-descricao").value = model ? (model.description || "") : "";
-      document.getElementById("btn-excluir-modelo").classList.toggle("hidden", !model);
+      document.getElementById("editor-comida-titulo").textContent = model ? model.name : "Nova comida";
+      document.getElementById("comida-nome").value = model ? model.name : "";
+      document.getElementById("comida-descricao").value = model ? (model.description || "") : "";
+      document.getElementById("btn-excluir-comida").classList.toggle("hidden", !model);
 
-      // cópia local — não afeta o modelo original até "Salvar modelo"
-      modelBuilderItems = model ? model.items.map(function (i) { return Object.assign({}, i); }) : [];
-      renderModeloBuilder();
-      switchView("editor-modelo");
+      // cópia local — não afeta a comida original até "Salvar comida"
+      comidaBuilderItems = model ? model.items.map(function (i) { return Object.assign({}, i); }) : [];
+      fillComidaSelectNoComida();
+      renderComidaBuilder();
+      switchView("editor-comida");
     });
   }
 
-  function renderModeloBuilder() {
-    renderBuilderItems("modelo-itens-lista", modelBuilderItems, renderModeloBuilder);
+  function renderComidaBuilder() {
+    renderBuilderItems("comida-itens-lista", comidaBuilderItems, renderComidaBuilder);
   }
 
-  document.getElementById("btn-novo-modelo").addEventListener("click", function () { openModelEditor(null); });
-  document.getElementById("btn-cancelar-modelo").addEventListener("click", function () { switchView("modelos"); });
+  document.getElementById("btn-nova-comida").addEventListener("click", function () { openComidaEditor(null); });
+  document.getElementById("btn-cancelar-comida").addEventListener("click", function () { switchView("comidas"); });
 
-  document.getElementById("btn-add-item-modelo").addEventListener("click", function () {
-    var sel = document.getElementById("modelo-select-item");
-    addItemToBuilder(modelBuilderItems, sel.value);
+  document.getElementById("btn-add-comida-comida").addEventListener("click", function () {
+    var sel = document.getElementById("comida-select-comida");
+    if (!sel.value) { toast("Selecione uma comida para adicionar."); return; }
+    addComidaToComidaBuilder(comidaBuilderItems, sel.value);
     sel.value = "";
-    renderModeloBuilder();
+    renderComidaBuilder();
   });
 
-  document.getElementById("btn-salvar-modelo").addEventListener("click", function () {
-    var name = document.getElementById("modelo-nome").value.trim();
-    var description = document.getElementById("modelo-descricao").value.trim();
-    if (!name) { toast("O nome do modelo é obrigatório."); return; }
+  document.getElementById("btn-add-item-comida").addEventListener("click", function () {
+    var sel = document.getElementById("comida-select-item");
+    addItemToBuilder(comidaBuilderItems, sel.value);
+    sel.value = "";
+    renderComidaBuilder();
+  });
 
-    var promise = editingModelId
-      ? db.collection("models").doc(editingModelId).update({
+  document.getElementById("btn-salvar-comida").addEventListener("click", function () {
+    var name = document.getElementById("comida-nome").value.trim();
+    var description = document.getElementById("comida-descricao").value.trim();
+    if (!name) { toast("O nome da comida é obrigatório."); return; }
+
+    var promise = editingComidaId
+      ? db.collection("models").doc(editingComidaId).update({
           name: name,
           description: description,
-          items: modelBuilderItems,
+          items: comidaBuilderItems,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         })
       : db.collection("models").add({
           name: name,
           description: description,
-          items: modelBuilderItems,
+          items: comidaBuilderItems,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
     promise.then(function () {
-      toast(editingModelId ? "Modelo atualizado." : "Modelo criado.");
-      switchView("modelos");
+      toast(editingComidaId ? "Comida atualizada." : "Comida criada.");
+      switchView("comidas");
     }).catch(function () {
-      toast("Erro ao salvar modelo.");
+      toast("Erro ao salvar comida.");
     });
   });
 
-  document.getElementById("btn-excluir-modelo").addEventListener("click", function () {
-    if (!editingModelId) return;
+  document.getElementById("btn-excluir-comida").addEventListener("click", function () {
+    if (!editingComidaId) return;
     if (!confirm("Excluir esta comida? listas já criadas a partir dela não serão afetadas.")) return;
-    db.collection("models").doc(editingModelId).delete().then(function () {
-      toast("Modelo excluído.");
-      switchView("modelos");
+    db.collection("models").doc(editingComidaId).delete().then(function () {
+      toast("Comida excluída.");
+      switchView("comidas");
     });
   });
 
@@ -833,10 +879,10 @@
     renderBuilderItems("bloco-itens-lista", blockBuilderItems, renderBlocoBuilder);
   }
 
-  document.getElementById("btn-add-modelo-bloco").addEventListener("click", function () {
-    var sel = document.getElementById("bloco-select-modelo");
+  document.getElementById("btn-add-comida-bloco").addEventListener("click", function () {
+    var sel = document.getElementById("bloco-select-comida");
     if (!sel.value) { toast("Selecione uma comida para adicionar."); return; }
-    addModeloToBuilder(blockBuilderItems, sel.value);
+    addComidaToBuilder(blockBuilderItems, sel.value);
     sel.value = "";
     renderBlocoBuilder();
   });
@@ -854,10 +900,10 @@
     document.getElementById("btn-enviar-bloco").textContent = "Criar e enviar lista";
     document.getElementById("bloco-nome").value = "";
     document.getElementById("bloco-descricao").value = "";
-    document.getElementById("bloco-select-modelo").value = "";
+    document.getElementById("bloco-select-comida").value = "";
     document.getElementById("bloco-destinatario").value = "";
     blockBuilderItems = [];
-    blockBuilderModelIds = [];
+    blockBuilderComidaIds = [];
     renderBlocoBuilder();
   }
 
@@ -879,7 +925,7 @@
     document.getElementById("bloco-descricao").value = b.description || "";
     document.getElementById("bloco-destinatario").value = b.assignedTo || "";
     blockBuilderItems = b.items.map(function (i) { return Object.assign({}, i); });
-    blockBuilderModelIds = (b.modelIds || []).slice();
+    blockBuilderComidaIds = (b.modelIds || []).slice();
     renderBlocoBuilder();
     switchView("novo-bloco");
   }
@@ -898,7 +944,7 @@
     var payload = {
       name: name,
       description: description,
-      modelIds: blockBuilderModelIds, // comidas usadas para montar esta lista (apenas registro)
+      modelIds: blockBuilderComidaIds, // comidas usadas para montar esta lista (apenas registro)
       assignedTo: assignedTo,
       assignedToName: assignedToName,
       items: blockBuilderItems,
@@ -978,7 +1024,7 @@
     document.getElementById("detalhe-bloco-destino").textContent = "Enviado para " + (b.assignedToName || "—") + " em " + fmtDate(b.createdAt);
     document.getElementById("detalhe-bloco-descricao").textContent = b.description || "";
 
-    var grupos = groupItemsByModel(b.items);
+    var grupos = groupItemsByComida(b.items);
     document.getElementById("detalhe-bloco-itens").innerHTML = grupos.map(function (g) {
       return '<div class="group-title">' + g.name + '</div>' +
         g.items.map(function (i) {
